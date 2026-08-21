@@ -1,0 +1,48 @@
+{
+  "name": "@flyreq/cli",
+  "version": "0.1.0",
+  "description": "FeiFly flyreq CLI — generate bus API templates from endpoints JSON",
+  "type": "module",
+  "bin": {
+    "flyreq": "./dist/cli.js"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js",
+      "require": "./dist/cli.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsdown && node ../../scripts/link-dts.mjs",
+    "dev": "tsdown --watch"
+  },
+  "keywords": [
+    "flyreq",
+    "cli",
+    "codegen"
+  ],
+  "author": "飞 (Fei)",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

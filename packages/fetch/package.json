@@ -1,0 +1,41 @@
+{
+  "name": "@flyreq/fetch",
+  "version": "0.1.0",
+  "description": "FeiFly flyreq fetch Requestor implementation",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsdown && node ../../scripts/link-dts.mjs",
+    "dev": "tsdown --watch"
+  },
+  "keywords": [
+    "flyreq",
+    "fetch"
+  ],
+  "author": "飞 (Fei)",
+  "license": "MIT",
+  "dependencies": {
+    "@flyreq/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

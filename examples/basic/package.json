@@ -1,0 +1,19 @@
+{
+  "name": "@flyreq/example-basic",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@flyreq/axios": "workspace:*",
+    "@flyreq/bus": "workspace:*",
+    "@flyreq/core": "workspace:*",
+    "@flyreq/fetch": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.4",
+    "typescript": "catalog:"
+  }
+}

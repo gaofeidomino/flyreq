@@ -1,0 +1,40 @@
+{
+  "name": "@flyreq/core",
+  "version": "0.1.0",
+  "description": "FeiFly flyreq core — Requestor DIP, cache, idempotent, retry, parallel, serial",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsdown && node ../../scripts/link-dts.mjs",
+    "dev": "tsdown --watch"
+  },
+  "keywords": [
+    "flyreq",
+    "feifly",
+    "request",
+    "http"
+  ],
+  "author": "飞 (Fei)",
+  "license": "MIT",
+  "devDependencies": {
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

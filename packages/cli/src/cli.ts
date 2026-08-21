@@ -1,0 +1,90 @@
+#!/usr/bin/env node
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { dirname, join, resolve } from 'node:path'
+import { generateFromApiJson, type ApiJson } from './generate'
+
+function printHelp(): void {
+  console.log(`FeiFly flyreq CLI
+
+Usage:
+  flyreq gen <api.json> -o <outdir>
+
+Options:
+  -o, --out <dir>   Output directory (e.g. src/generated)
+  -h, --help        Show help
+
+Example:
+  flyreq gen ./api.json -o ./src/generated
+
+Convention:
+  Put generated files under generated/; hand-written wrappers go in overrides/.
+`)
+}
+
+function parseArgs(argv: string[]) {
+  const args = argv.slice(2)
+  const cmd = args[0]
+  if (!cmd || cmd === '-h' || cmd === '--help' || cmd === 'help') {
+    return { cmd: 'help' as const }
+  }
+  if (cmd !== 'gen') {
+    return { cmd: 'unknown' as const, rest: args }
+  }
+
+  let input: string | undefined
+  let outDir: string | undefined
+  for (let i = 1; i < args.length; i++) {
+    const a = args[i]
+    if (a === '-o' || a === '--out') {
+      outDir = args[++i]
+    }
+    else if (a === '-h' || a === '--help') {
+      return { cmd: 'help' as const }
+    }
+    else if (!input) {
+      input = a
+    }
+  }
+  return { cmd: 'gen' as const, input, outDir }
+}
+
+async function main(): Promise<void> {
+  const parsed = parseArgs(process.argv)
+  if (parsed.cmd === 'help') {
+    printHelp()
+    return
+  }
+  if (parsed.cmd === 'unknown') {
+    console.error(`Unknown command. Run: flyreq --help`)
+    process.exitCode = 1
+    return
+  }
+  if (!parsed.input || !parsed.outDir) {
+    console.error('Usage: flyreq gen <api.json> -o <outdir>')
+    process.exitCode = 1
+    return
+  }
+
+  const inputPath = resolve(parsed.input)
+  const outPath = resolve(parsed.outDir)
+  const raw = await readFile(inputPath, 'utf8')
+  const api = JSON.parse(raw) as ApiJson
+  const files = generateFromApiJson(api)
+
+  if (Object.keys(files).length === 0) {
+    console.warn('No endpoints found in JSON')
+    return
+  }
+
+  for (const [name, content] of Object.entries(files)) {
+    const filePath = join(outPath, name)
+    await mkdir(dirname(filePath), { recursive: true })
+    await writeFile(filePath, content, 'utf8')
+    console.log(`wrote ${filePath}`)
+  }
+}
+
+main().catch((err) => {
+  console.error(err)
+  process.exitCode = 1
+})

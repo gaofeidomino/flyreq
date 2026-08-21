@@ -1,0 +1,28 @@
+{
+  "name": "flyreq",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FeiFly / flyreq — layered frontend request library",
+  "scripts": {
+    "build": "pnpm -r --filter=./packages/* run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "pnpm -r --filter=./packages/* --parallel run build --watch",
+    "gen:example": "pnpm --filter @flyreq/cli exec node ./dist/cli.mjs gen ../../examples/basic/api.json -o ../../examples/basic/generated"
+  },
+  "keywords": [
+    "flyreq",
+    "feifly",
+    "request",
+    "http",
+    "axios",
+    "fetch"
+  ],
+  "author": "飞 (Fei)",
+  "license": "MIT",
+  "packageManager": "pnpm@10.22.0",
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
