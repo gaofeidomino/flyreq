@@ -4,10 +4,11 @@ export {
   setToken,
   getToken,
   getBusConfig,
-  useAxiosBackend,
-  useFetchBackend,
-  setupBus,
+  attachBus,
+  injectBus,
   busCall,
   busRequest,
+  type BusConfig,
+  type BusCallOptions,
 } from './setup'
 export { publishArticle, getArticles, getArticleById, type Article } from './templates/article'

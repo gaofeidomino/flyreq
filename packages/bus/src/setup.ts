@@ -6,8 +6,6 @@ import {
   type RequestOptions,
   type Requestor,
 } from '@flyreq/core'
-import { createAxiosRequestor } from '@flyreq/axios'
-import { createFetchRequestor } from '@flyreq/fetch'
 import { BusError, unwrapEnvelope, type ApiEnvelope } from './protocol'
 
 export interface BusConfig {
@@ -45,7 +43,6 @@ function applyBusDefaults(config: RequestConfig): RequestConfig {
   const headers = { ...(config.headers ?? {}) }
   const authHeader = busConfig.authHeader ?? 'Authorization'
   const t = getToken()
-  // meta.auth === false skips token; otherwise attach when token present
   const skipAuth = config.meta?.auth === false
   if (t && !skipAuth && !headers[authHeader]) {
     headers[authHeader] = t.startsWith('Bearer ') ? t : `Bearer ${t}`
@@ -57,7 +54,8 @@ function applyBusDefaults(config: RequestConfig): RequestConfig {
   }
 }
 
-function wrapWithBus(base: Requestor): Requestor {
+/** Wrap any Requestor with bus defaults (token / baseURL). Does not inject. */
+export function attachBus(base: Requestor): Requestor {
   async function request(config: RequestConfig) {
     return base.request(applyBusDefaults(config))
   }
@@ -81,30 +79,11 @@ function wrapWithBus(base: Requestor): Requestor {
   }
 }
 
-export function useAxiosBackend(axiosConfig?: Parameters<typeof createAxiosRequestor>[0]): Requestor {
-  const base =
-    axiosConfig != null
-      ? createAxiosRequestor(axiosConfig)
-      : createAxiosRequestor(busConfig.baseURL ? { baseURL: busConfig.baseURL } : undefined)
-  const wrapped = wrapWithBus(base)
+/** Attach bus defaults and inject as the global Requestor */
+export function injectBus(base: Requestor): Requestor {
+  const wrapped = attachBus(base)
   inject(wrapped)
   return wrapped
-}
-
-export function useFetchBackend(options?: Parameters<typeof createFetchRequestor>[0]): Requestor {
-  const base = createFetchRequestor({
-    baseURL: busConfig.baseURL,
-    ...options,
-  })
-  const wrapped = wrapWithBus(base)
-  inject(wrapped)
-  return wrapped
-}
-
-/** Default: inject axios backend */
-export function setupBus(config?: BusConfig): Requestor {
-  if (config) configureBus(config)
-  return useAxiosBackend()
 }
 
 export interface BusCallOptions extends RequestOptions {
@@ -147,6 +126,3 @@ export async function busRequest<T = unknown>(
   }
   return busCall<T>(requestor, m, url, dataOrOptions, options)
 }
-
-// Auto-setup on import so `import '@flyreq/bus'` injects default axios requestor
-setupBus()

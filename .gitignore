@@ -8,3 +8,4 @@ coverage
 .vite
 .pnpm-store
 examples/**/generated
+flyreq.config.json

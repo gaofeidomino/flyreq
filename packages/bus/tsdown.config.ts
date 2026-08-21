@@ -7,5 +7,5 @@ export default defineConfig({
   clean: true,
   outDir: 'dist',
   sourcemap: true,
-  external: ['@flyreq/core', '@flyreq/axios', '@flyreq/fetch'],
+  external: ['@flyreq/core'],
 })

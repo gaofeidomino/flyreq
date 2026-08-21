@@ -1,8 +1,11 @@
 {
-  "name": "@flyreq/bus",
+  "name": "flyreq",
   "version": "0.1.0",
-  "description": "FeiFly flyreq bus — business protocol layer (auth, unwrap, templates)",
+  "description": "FeiFly flyreq — single-package frontend request library with swappable transports",
   "type": "module",
+  "bin": {
+    "flyreq": "./dist/cli.js"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,7 +15,12 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js",
+      "require": "./dist/cli.cjs"
+    }
   },
   "files": [
     "dist",
@@ -24,14 +32,23 @@
   },
   "keywords": [
     "flyreq",
-    "bus"
+    "feifly",
+    "request",
+    "http",
+    "axios",
+    "fetch"
   ],
   "author": "飞 (Fei)",
   "license": "MIT",
   "dependencies": {
-    "@flyreq/core": "workspace:*"
+    "@flyreq/axios": "workspace:*",
+    "@flyreq/bus": "workspace:*",
+    "@flyreq/cli": "workspace:*",
+    "@flyreq/core": "workspace:*",
+    "@flyreq/fetch": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:"
   },

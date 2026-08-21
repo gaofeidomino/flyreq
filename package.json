@@ -8,7 +8,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "pnpm -r --filter=./packages/* --parallel run build --watch",
-    "gen:example": "pnpm --filter @flyreq/cli exec node ./dist/cli.mjs gen ../../examples/basic/api.json -o ../../examples/basic/generated"
+    "gen:example": "pnpm --filter flyreq exec node ./dist/cli.js gen ../../examples/basic/api.json -o ../../examples/basic/generated"
   },
   "keywords": [
     "flyreq",

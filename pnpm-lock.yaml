@@ -35,18 +35,9 @@ importers:
 
   examples/basic:
     dependencies:
-      '@flyreq/axios':
+      flyreq:
         specifier: workspace:*
-        version: link:../../packages/axios
-      '@flyreq/bus':
-        specifier: workspace:*
-        version: link:../../packages/bus
-      '@flyreq/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@flyreq/fetch':
-        specifier: workspace:*
-        version: link:../../packages/fetch
+        version: link:../../packages/flyreq
     devDependencies:
       tsx:
         specifier: ^4.19.4
@@ -73,15 +64,9 @@ importers:
 
   packages/bus:
     dependencies:
-      '@flyreq/axios':
-        specifier: workspace:*
-        version: link:../axios
       '@flyreq/core':
         specifier: workspace:*
         version: link:../core
-      '@flyreq/fetch':
-        specifier: workspace:*
-        version: link:../fetch
     devDependencies:
       tsdown:
         specifier: 'catalog:'
@@ -117,6 +102,34 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.12.9(typescript@5.9.3)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
+  packages/flyreq:
+    dependencies:
+      '@flyreq/axios':
+        specifier: workspace:*
+        version: link:../axios
+      '@flyreq/bus':
+        specifier: workspace:*
+        version: link:../bus
+      '@flyreq/cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@flyreq/core':
+        specifier: workspace:*
+        version: link:../core
+      '@flyreq/fetch':
+        specifier: workspace:*
+        version: link:../fetch
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.1
       tsdown:
         specifier: 'catalog:'
         version: 0.12.9(typescript@5.9.3)

@@ -28,6 +28,7 @@ describe('generateFromApiJson', () => {
       },
     })
     expect(Object.keys(files)).toEqual(['article.ts'])
+    expect(files['article.ts']).toContain("from 'flyreq'")
     expect(files['article.ts']).toContain('createIdempotentRequestor')
     expect(files['article.ts']).toContain('useRequestor')
     expect(files['article.ts']).toContain("busCall(req, 'POST', '/api/article'")
