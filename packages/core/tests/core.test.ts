@@ -123,7 +123,7 @@ describe('createRetryRequestor', () => {
       return createHttpResponse({ status: 200, statusText: 'OK', headers: {}, data: n, url: '/' })
     })
     inject(requestor)
-    const retry = createRetryRequestor({ maxCount: 5, delay: 0 })
+    const retry = createRetryRequestor(5)
     const resp = await retry.get('/')
     expect(await resp.json()).toBe(3)
   })

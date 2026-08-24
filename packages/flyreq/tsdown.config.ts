@@ -16,6 +16,7 @@ export default defineConfig({
     '@flyreq/bus',
     '@flyreq/axios',
     '@flyreq/fetch',
+    '@flyreq/xhr',
     '@flyreq/cli',
   ],
 })

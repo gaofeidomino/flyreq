@@ -16,14 +16,22 @@ export { inject, useRequestor, resetRequestor, resolveBase } from './inject'
 export {
   createHttpResponse,
   buildConfig,
+  defineRequestor,
   wrapRequestor,
   createEventfulRequestor,
 } from './requestor'
+export { joinURL, appendParams } from './url'
 export {
   createMemoryStore,
   createStorageStore,
+  createIndexedDBStore,
+  createServiceWorkerStore,
+  createWebSQLStore,
+  createCookieStore,
+  createCacheStore,
   useCacheStore,
   type CacheStore,
+  type CacheStoreKind,
   type CacheMeta,
   type CacheEntry,
 } from './cache/store'

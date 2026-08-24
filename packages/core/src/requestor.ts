@@ -68,7 +68,13 @@ type Middleware = (
   next: () => Promise<HttpResponse>,
 ) => Promise<HttpResponse>
 
-function attachMethods(request: (config: RequestConfig) => Promise<HttpResponse>): Requestor {
+/**
+ * Build a full Requestor from a single `request` function.
+ * Transport implementations (axios / fetch / xhr) only implement this seam.
+ */
+export function defineRequestor(
+  request: (config: RequestConfig) => Promise<HttpResponse>,
+): Requestor {
   return {
     request,
     get(url, options) {
@@ -125,7 +131,7 @@ export function wrapRequestor(base: Requestor, middleware: Middleware): Eventful
     }
   }
 
-  const requestor = attachMethods(request) as EventfulRequestor
+  const requestor = defineRequestor(request) as EventfulRequestor
 
   requestor.on = ((event: RequestEvent, handler: BeforeRequestHandler | ResponseBodyHandler | ErrorHandler) => {
     if (event === 'beforeRequest') {

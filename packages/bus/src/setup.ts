@@ -1,5 +1,6 @@
 import {
   buildConfig,
+  defineRequestor,
   inject,
   type HttpMethod,
   type RequestConfig,
@@ -56,27 +57,22 @@ function applyBusDefaults(config: RequestConfig): RequestConfig {
 
 /** Wrap any Requestor with bus defaults (token / baseURL). Does not inject. */
 export function attachBus(base: Requestor): Requestor {
-  async function request(config: RequestConfig) {
-    return base.request(applyBusDefaults(config))
-  }
-  return {
-    request,
-    get(url, options) {
-      return request(buildConfig('GET', url, undefined, options))
-    },
-    post(url, data, options) {
-      return request(buildConfig('POST', url, data, options))
-    },
-    put(url, data, options) {
-      return request(buildConfig('PUT', url, data, options))
-    },
-    patch(url, data, options) {
-      return request(buildConfig('PATCH', url, data, options))
-    },
-    delete(url, options) {
-      return request(buildConfig('DELETE', url, undefined, options))
-    },
-  }
+  return defineRequestor(async (config) => base.request(applyBusDefaults(config)))
+}
+
+/**
+ * DIP composition root: inject a concrete Requestor into core and attach bus protocol.
+ * `request-core` only depends on the Requestor interface; pass axios / fetch / xhr here.
+ *
+ * ```ts
+ * import { bootstrap } from '@flyreq/bus'
+ * import { requestor } from '@flyreq/axios'
+ * bootstrap(requestor)
+ * ```
+ */
+export function bootstrap(requestor: Requestor, config?: BusConfig): Requestor {
+  if (config) configureBus(config)
+  return injectBus(requestor)
 }
 
 /** Attach bus defaults and inject as the global Requestor */

@@ -5,10 +5,16 @@ export {
   resetRequestor,
   createHttpResponse,
   buildConfig,
+  defineRequestor,
   wrapRequestor,
   createEventfulRequestor,
   createMemoryStore,
   createStorageStore,
+  createIndexedDBStore,
+  createServiceWorkerStore,
+  createWebSQLStore,
+  createCookieStore,
+  createCacheStore,
   useCacheStore,
   createCacheRequestor,
   hashRequest,
@@ -25,6 +31,7 @@ export {
   type RequestEvent,
   type EventfulRequestor,
   type CacheStore,
+  type CacheStoreKind,
   type CacheRequestorOptions,
   type IdempotentRequestorOptions,
   type RetryRequestorOptions,
@@ -43,6 +50,7 @@ export {
   getBusConfig,
   attachBus,
   injectBus,
+  bootstrap,
   busCall,
   busRequest,
   publishArticle,
@@ -72,3 +80,4 @@ export { loadFlyreqConfig, writeFlyreqConfig } from './config'
 // Low-level creators (advanced)
 export { createAxiosRequestor, requestor as axiosRequestor } from '@flyreq/axios'
 export { createFetchRequestor, requestor as fetchRequestor } from '@flyreq/fetch'
+export { createXhrRequestor, requestor as xhrRequestor } from '@flyreq/xhr'

@@ -1,11 +1,8 @@
 {
-  "name": "flyreq",
+  "name": "@flyreq/xhr",
   "version": "0.1.0",
-  "description": "FeiFly flyreq — single-package frontend request library with swappable transports",
+  "description": "FeiFly flyreq XMLHttpRequest Requestor implementation",
   "type": "module",
-  "bin": {
-    "flyreq": "./dist/cli.js"
-  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,12 +12,7 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./package.json": "./package.json",
-    "./cli": {
-      "types": "./dist/cli.d.ts",
-      "import": "./dist/cli.js",
-      "require": "./dist/cli.cjs"
-    }
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -32,25 +24,14 @@
   },
   "keywords": [
     "flyreq",
-    "feifly",
-    "request",
-    "http",
-    "axios",
-    "fetch",
     "xhr"
   ],
   "author": "飞 (Fei)",
   "license": "MIT",
   "dependencies": {
-    "@flyreq/axios": "workspace:*",
-    "@flyreq/bus": "workspace:*",
-    "@flyreq/cli": "workspace:*",
-    "@flyreq/core": "workspace:*",
-    "@flyreq/fetch": "workspace:*",
-    "@flyreq/xhr": "workspace:*"
+    "@flyreq/core": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:"
   },

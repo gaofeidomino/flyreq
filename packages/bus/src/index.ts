@@ -6,6 +6,7 @@ export {
   getBusConfig,
   attachBus,
   injectBus,
+  bootstrap,
   busCall,
   busRequest,
   type BusConfig,

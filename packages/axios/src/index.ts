@@ -4,11 +4,10 @@ import axios, {
   type CreateAxiosDefaults,
 } from 'axios'
 import {
-  buildConfig,
   createHttpResponse,
+  defineRequestor,
   type HttpResponse,
   type RequestConfig,
-  type RequestOptions,
   type Requestor,
 } from '@flyreq/core'
 
@@ -39,6 +38,7 @@ export function createAxiosRequestor(
       data: config.body,
       timeout: config.timeout,
       signal: config.signal,
+      baseURL: config.baseURL,
       validateStatus: () => true,
     }
 
@@ -52,24 +52,8 @@ export function createAxiosRequestor(
     })
   }
 
-  return {
-    request,
-    get(url: string, options?: RequestOptions) {
-      return request(buildConfig('GET', url, undefined, options))
-    },
-    post(url: string, data?: unknown, options?: RequestOptions) {
-      return request(buildConfig('POST', url, data, options))
-    },
-    put(url: string, data?: unknown, options?: RequestOptions) {
-      return request(buildConfig('PUT', url, data, options))
-    },
-    patch(url: string, data?: unknown, options?: RequestOptions) {
-      return request(buildConfig('PATCH', url, data, options))
-    },
-    delete(url: string, options?: RequestOptions) {
-      return request(buildConfig('DELETE', url, undefined, options))
-    },
-  }
+  return defineRequestor(request)
 }
 
+/** Default axios Requestor — inject this from the composition root (bus / flyreq). */
 export const requestor = createAxiosRequestor()

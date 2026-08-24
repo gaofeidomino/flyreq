@@ -14,7 +14,15 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-export function createRetryRequestor(options: RetryRequestorOptions = {}): EventfulRequestor {
+export function createRetryRequestor(maxCount?: number): EventfulRequestor
+export function createRetryRequestor(options?: RetryRequestorOptions): EventfulRequestor
+export function createRetryRequestor(
+  maxCountOrOptions: number | RetryRequestorOptions = {},
+): EventfulRequestor {
+  const options: RetryRequestorOptions =
+    typeof maxCountOrOptions === 'number'
+      ? { maxCount: maxCountOrOptions }
+      : maxCountOrOptions
   const maxCount = options.maxCount ?? 5
   const base = resolveBase(options.base)
 
@@ -48,7 +56,15 @@ export interface ParallelRequestorOptions {
   base?: Requestor
 }
 
-export function createParallelRequestor(options: ParallelRequestorOptions = {}): EventfulRequestor {
+export function createParallelRequestor(maxCount?: number): EventfulRequestor
+export function createParallelRequestor(options?: ParallelRequestorOptions): EventfulRequestor
+export function createParallelRequestor(
+  maxCountOrOptions: number | ParallelRequestorOptions = {},
+): EventfulRequestor {
+  const options: ParallelRequestorOptions =
+    typeof maxCountOrOptions === 'number'
+      ? { maxCount: maxCountOrOptions }
+      : maxCountOrOptions
   const maxCount = Math.max(1, options.maxCount ?? 4)
   const base = resolveBase(options.base)
   let active = 0

@@ -1,7 +1,7 @@
 import type { EventfulRequestor, PlainResponse, RequestConfig, Requestor } from '../types'
 import { createHttpResponse, wrapRequestor } from '../requestor'
 import { resolveBase } from '../inject'
-import { useCacheStore, type CacheStore } from './store'
+import { useCacheStore, type CacheStore, type CacheStoreKind } from './store'
 
 export interface CacheRequestorOptions {
   key?: (config: RequestConfig) => string
@@ -9,7 +9,9 @@ export interface CacheRequestorOptions {
   /** TTL in milliseconds; ignored when `isValid` is provided */
   duration?: number
   isValid?: (key: string, config: RequestConfig) => boolean | Promise<boolean>
+  /** Inject a CacheStore (DIP); takes precedence over persist / storeKind */
   store?: CacheStore
+  storeKind?: CacheStoreKind
   base?: Requestor
 }
 
@@ -25,13 +27,14 @@ function normalizeOptions(options: CacheRequestorOptions = {}) {
     duration: options.duration,
     isValid: options.isValid,
     store: options.store,
+    storeKind: options.storeKind,
     base: options.base,
   }
 }
 
 export function createCacheRequestor(cacheOptions: CacheRequestorOptions = {}): EventfulRequestor {
   const options = normalizeOptions(cacheOptions)
-  const store = options.store ?? useCacheStore(options.persist)
+  const store = options.store ?? useCacheStore(options.storeKind ?? options.persist)
   const base = resolveBase(options.base)
 
   const requestor = wrapRequestor(base, async (_config, next) => next())

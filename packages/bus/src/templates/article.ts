@@ -15,8 +15,9 @@ export interface Article {
  * Publish article (idempotent) — hand-written template sample
  */
 export const publishArticle = (() => {
+  let req: ReturnType<typeof createIdempotentRequestor> | undefined
   return async (article: Article) => {
-    const req = createIdempotentRequestor()
+    req ??= createIdempotentRequestor()
     return busCall<Article>(req, 'POST', '/api/article', article, {
       meta: { auth: true },
     })
@@ -40,8 +41,9 @@ export const getArticles = (() => {
  * Cached article detail example
  */
 export const getArticleById = (() => {
+  let req: ReturnType<typeof createCacheRequestor> | undefined
   return async (id: string) => {
-    const req = createCacheRequestor({
+    req ??= createCacheRequestor({
       duration: 60_000,
       key: (c) => `article:${c.url}:${JSON.stringify(c.params ?? {})}`,
     })

@@ -1,9 +1,10 @@
 import {
-  buildConfig,
+  appendParams,
   createHttpResponse,
+  defineRequestor,
+  joinURL,
   type HttpResponse,
   type RequestConfig,
-  type RequestOptions,
   type Requestor,
 } from '@flyreq/core'
 
@@ -11,28 +12,6 @@ export interface FetchRequestorOptions {
   baseURL?: string
   defaultHeaders?: Record<string, string>
   fetch?: typeof globalThis.fetch
-}
-
-function joinURL(baseURL: string | undefined, url: string): string {
-  if (!baseURL) return url
-  if (/^https?:\/\//i.test(url)) return url
-  const base = baseURL.replace(/\/+$/, '')
-  const path = url.replace(/^\/+/, '')
-  return `${base}/${path}`
-}
-
-function appendParams(url: string, params?: Record<string, unknown>): string {
-  if (!params || Object.keys(params).length === 0) return url
-  const u = new URL(url, typeof location !== 'undefined' ? location.href : 'http://localhost')
-  for (const [key, value] of Object.entries(params)) {
-    if (value == null) continue
-    u.searchParams.set(key, String(value))
-  }
-  // Preserve relative URLs when no absolute base was intended
-  if (!/^https?:\/\//i.test(url) && typeof location === 'undefined') {
-    return `${u.pathname}${u.search}`
-  }
-  return u.toString()
 }
 
 function headersToRecord(headers: Headers): Record<string, string> {
@@ -120,24 +99,8 @@ export function createFetchRequestor(options: FetchRequestorOptions = {}): Reque
     }
   }
 
-  return {
-    request,
-    get(url: string, opts?: RequestOptions) {
-      return request(buildConfig('GET', url, undefined, opts))
-    },
-    post(url: string, data?: unknown, opts?: RequestOptions) {
-      return request(buildConfig('POST', url, data, opts))
-    },
-    put(url: string, data?: unknown, opts?: RequestOptions) {
-      return request(buildConfig('PUT', url, data, opts))
-    },
-    patch(url: string, data?: unknown, opts?: RequestOptions) {
-      return request(buildConfig('PATCH', url, data, opts))
-    },
-    delete(url: string, opts?: RequestOptions) {
-      return request(buildConfig('DELETE', url, undefined, opts))
-    },
-  }
+  return defineRequestor(request)
 }
 
+/** Default fetch Requestor — inject this from the composition root (bus / flyreq). */
 export const requestor = createFetchRequestor()

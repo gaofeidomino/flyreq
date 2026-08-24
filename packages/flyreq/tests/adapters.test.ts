@@ -46,7 +46,7 @@ beforeEach(() => {
 describe('adapters', () => {
   it('lists builtin backends after setup', () => {
     setup({ ignoreConfigFile: true, backend: 'fetch' })
-    expect(listBackends()).toEqual(expect.arrayContaining(['axios', 'fetch']))
+    expect(listBackends()).toEqual(expect.arrayContaining(['axios', 'fetch', 'xhr']))
     expect(getBackend()).toBe('fetch')
   })
 

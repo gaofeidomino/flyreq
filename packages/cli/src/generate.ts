@@ -47,6 +47,7 @@ function genFunction(name: string, ep: EndpointDef): string {
 
   const isBodyMethod = !['GET', 'DELETE', 'HEAD'].includes(method)
   const requestorExpr = pickRequestor(ep)
+  const stateful = Boolean(ep.idempotent || ep.cache)
 
   let paramsSig: string
   let callArgs: string
@@ -64,32 +65,36 @@ function genFunction(name: string, ep: EndpointDef): string {
     const opts = metaPart ? `{ ${metaPart} }` : 'undefined'
     callArgs = `data, ${opts}`
   }
+  else if (metaPart) {
+    paramsSig = 'params?: Record<string, unknown>'
+    callArgs = `undefined, { params, ${metaPart} }`
+  }
   else {
     paramsSig = 'params?: Record<string, unknown>'
-    const opts = [
-      'params',
-      metaPart,
-    ].filter(Boolean)
-    // params is already an object variable — spread into options
-    if (metaPart) {
-      callArgs = `undefined, { params, ${metaPart} }`
-    }
-    else {
-      callArgs = `undefined, { params }`
-    }
-    void opts
+    callArgs = `undefined, { params }`
+  }
+
+  if (stateful) {
+    return `${toComment(ep.description)}export const ${name} = (() => {
+  let req
+  return async (${paramsSig}) => {
+    req ??= ${requestorExpr}
+    return busCall(req, '${method}', '${ep.path}', ${callArgs})
+  }
+})()
+`
   }
 
   return `${toComment(ep.description)}export const ${name} = (() => {
   return async (${paramsSig}) => {
-    const req = ${requestorExpr}
+    const req = useRequestor()
     return busCall(req, '${method}', '${ep.path}', ${callArgs})
   }
 })()
 `
 }
 
-export function generateResourceFile(resourceName: string, endpoints: Record<string, EndpointDef>): string {
+export function generateResourceFile(_resourceName: string, endpoints: Record<string, EndpointDef>): string {
   const flags = needsCoreImport(endpoints)
   const imports: string[] = ['busCall']
   if (flags.idempotent) imports.push('createIdempotentRequestor')

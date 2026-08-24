@@ -1,114 +1,58 @@
-export interface CacheMeta {
-  expireAt?: number
-}
+import type { CacheStore } from './types'
+import { createMemoryStore } from './stores/memory'
+import { createStorageStore } from './stores/storage'
+import { createIndexedDBStore } from './stores/indexeddb'
+import { createServiceWorkerStore } from './stores/sw'
+import { createWebSQLStore } from './stores/websql'
+import { createCookieStore } from './stores/cookie'
 
-export interface CacheEntry<T = unknown> {
-  value: T
-  meta?: CacheMeta
-}
+export type { CacheStore, CacheMeta, CacheEntry } from './types'
+export { createMemoryStore } from './stores/memory'
+export { createStorageStore } from './stores/storage'
+export { createIndexedDBStore } from './stores/indexeddb'
+export { createServiceWorkerStore } from './stores/sw'
+export { createWebSQLStore } from './stores/websql'
+export { createCookieStore } from './stores/cookie'
 
-export interface CacheStore {
-  has(key: string): Promise<boolean>
-  get<T>(key: string): Promise<T | undefined>
-  set<T>(key: string, value: T, meta?: CacheMeta): Promise<void>
-  delete(key: string): Promise<void>
-  clear(): Promise<void>
-}
+/**
+ * Store kinds from the persistence DIP diagram:
+ * storage / indexeddb / SW / WebSQL / cookie / memory
+ */
+export type CacheStoreKind =
+  | 'memory'
+  | 'storage'
+  | 'indexeddb'
+  | 'sw'
+  | 'websql'
+  | 'cookie'
 
-export function createMemoryStore(): CacheStore {
-  const map = new Map<string, CacheEntry>()
-
-  return {
-    async has(key) {
-      const entry = map.get(key)
-      if (!entry) return false
-      if (entry.meta?.expireAt != null && Date.now() > entry.meta.expireAt) {
-        map.delete(key)
-        return false
-      }
-      return true
-    },
-    async get<T>(key: string) {
-      if (!(await this.has(key))) return undefined
-      return map.get(key)?.value as T | undefined
-    },
-    async set(key, value, meta) {
-      map.set(key, { value, meta })
-    },
-    async delete(key) {
-      map.delete(key)
-    },
-    async clear() {
-      map.clear()
-    },
-  }
-}
-
-const STORAGE_PREFIX = 'flyreq:cache:'
-
-function getLocalStorage(): Storage | undefined {
-  try {
-    if (typeof globalThis !== 'undefined' && 'localStorage' in globalThis) {
-      return (globalThis as { localStorage?: Storage }).localStorage
+export function createCacheStore(kind: CacheStoreKind): CacheStore {
+  switch (kind) {
+    case 'memory':
+      return createMemoryStore()
+    case 'storage':
+      return createStorageStore()
+    case 'indexeddb':
+      return createIndexedDBStore()
+    case 'sw':
+      return createServiceWorkerStore()
+    case 'websql':
+      return createWebSQLStore()
+    case 'cookie':
+      return createCookieStore()
+    default: {
+      const _exhaustive: never = kind
+      throw new Error(`[flyreq] unknown cache store: ${String(_exhaustive)}`)
     }
   }
-  catch {
-    // ignore
-  }
-  return undefined
 }
 
-export function createStorageStore(): CacheStore {
-  const storage = getLocalStorage()
-  if (!storage) {
-    console.warn('[flyreq] localStorage unavailable; falling back to memory cache store')
-    return createMemoryStore()
-  }
-
-  function readEntry(key: string): CacheEntry | undefined {
-    const raw = storage.getItem(STORAGE_PREFIX + key)
-    if (!raw) return undefined
-    try {
-      return JSON.parse(raw) as CacheEntry
-    }
-    catch {
-      storage.removeItem(STORAGE_PREFIX + key)
-      return undefined
-    }
-  }
-
-  return {
-    async has(key) {
-      const entry = readEntry(key)
-      if (!entry) return false
-      if (entry.meta?.expireAt != null && Date.now() > entry.meta.expireAt) {
-        storage.removeItem(STORAGE_PREFIX + key)
-        return false
-      }
-      return true
-    },
-    async get<T>(key: string) {
-      if (!(await this.has(key))) return undefined
-      return readEntry(key)?.value as T | undefined
-    },
-    async set(key, value, meta) {
-      const entry: CacheEntry = { value, meta }
-      storage.setItem(STORAGE_PREFIX + key, JSON.stringify(entry))
-    },
-    async delete(key) {
-      storage.removeItem(STORAGE_PREFIX + key)
-    },
-    async clear() {
-      const toRemove: string[] = []
-      for (let i = 0; i < storage.length; i++) {
-        const k = storage.key(i)
-        if (k?.startsWith(STORAGE_PREFIX)) toRemove.push(k)
-      }
-      for (const k of toRemove) storage.removeItem(k)
-    },
-  }
-}
-
-export function useCacheStore(persist: boolean): CacheStore {
-  return persist ? createStorageStore() : createMemoryStore()
+/**
+ * Default factory from the spec: memory vs persist (Web Storage).
+ * Also accepts a store kind to pick any CacheStore adapter.
+ */
+export function useCacheStore(persistOrKind: boolean | CacheStoreKind = false): CacheStore {
+  if (persistOrKind === true) return createStorageStore()
+  if (persistOrKind === false) return createMemoryStore()
+  return createCacheStore(persistOrKind)
 }

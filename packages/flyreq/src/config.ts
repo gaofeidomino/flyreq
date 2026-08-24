@@ -3,6 +3,8 @@ import { join } from 'node:path'
 
 export interface FlyreqFileConfig {
   backend?: string
+  /** 接口平台 URL — `flyreq gen` pulls latest API JSON from here */
+  platform?: string
   baseURL?: string
   successCode?: number
   authHeader?: string

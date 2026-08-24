@@ -1,6 +1,7 @@
 import type { Requestor } from '@flyreq/core'
 import { createAxiosRequestor } from '@flyreq/axios'
 import { createFetchRequestor } from '@flyreq/fetch'
+import { createXhrRequestor } from '@flyreq/xhr'
 
 export type BackendName = string
 
@@ -53,6 +54,11 @@ export function registerBuiltinAdapters(): void {
   if (!adapters.has('fetch')) {
     registerAdapter('fetch', (options) =>
       createFetchRequestor(options as Parameters<typeof createFetchRequestor>[0]),
+    )
+  }
+  if (!adapters.has('xhr')) {
+    registerAdapter('xhr', (options) =>
+      createXhrRequestor(options as Parameters<typeof createXhrRequestor>[0]),
     )
   }
 }

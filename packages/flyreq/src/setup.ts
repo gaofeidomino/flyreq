@@ -1,9 +1,5 @@
 import type { Requestor } from '@flyreq/core'
-import {
-  configureBus,
-  injectBus,
-  type BusConfig,
-} from '@flyreq/bus'
+import { bootstrap, configureBus, type BusConfig } from '@flyreq/bus'
 import {
   createBackend,
   getBackend,
@@ -55,11 +51,11 @@ export function setBackend(
   ensureBuiltins()
   if (isRequestor(nameOrRequestor)) {
     markBackend('custom')
-    return injectBus(nameOrRequestor)
+    return bootstrap(nameOrRequestor)
   }
   const requestor = createBackend(nameOrRequestor, options)
   markBackend(nameOrRequestor)
-  return injectBus(requestor)
+  return bootstrap(requestor)
 }
 
 /**

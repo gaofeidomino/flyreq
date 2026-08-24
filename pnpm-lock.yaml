@@ -126,10 +126,26 @@ importers:
       '@flyreq/fetch':
         specifier: workspace:*
         version: link:../fetch
+      '@flyreq/xhr':
+        specifier: workspace:*
+        version: link:../xhr
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.1
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.12.9(typescript@5.9.3)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
+  packages/xhr:
+    dependencies:
+      '@flyreq/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
       tsdown:
         specifier: 'catalog:'
         version: 0.12.9(typescript@5.9.3)

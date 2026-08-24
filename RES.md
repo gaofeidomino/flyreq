@@ -33,7 +33,7 @@ axios虽然很成熟，但它只是一个基础库，没有提供诸多的上层
 
 ### 库结构的宏观设计
 
-![结构](https://resource.duyiedu.com/yuanjin/202403151545374.svg)
+![结构](docs/res/structure.png)
 
 整个库结构包含三层，从下往上依次是：
 
@@ -63,7 +63,7 @@ axios虽然很成熟，但它只是一个基础库，没有提供诸多的上层
 
 于是结构演变为：
 
-![优化结构](https://resource.duyiedu.com/yuanjin/202403151501992.svg)
+![优化结构](docs/res/dip.png)
 
 下面是示意代码
 
@@ -185,7 +185,7 @@ const req = createCacheRequestor({
 
 为了抹平这种差异，避免将来存储方案变动时对其他代码造成影响，需要设计一个稳定的接口来屏蔽方案间的差异。
 
-![存储方案](https://resource.duyiedu.com/yuanjin/202403161148200.svg)
+![存储方案](docs/res/storage.png)
 
 ```ts
 export interface CacheStore{
@@ -298,7 +298,7 @@ function createIdempotentRequestor(genKey){
 
 可以通过一些标准化的工具让整个过程自动化。
 
-<img src="https://resource.duyiedu.com/yuanjin/202403161329435.svg" alt="样板代码的生成" style="zoom:50%;" />
+<img src="docs/res/codegen.png" alt="样板代码的生成" style="zoom:50%;" />
 
 **接口平台**
 
