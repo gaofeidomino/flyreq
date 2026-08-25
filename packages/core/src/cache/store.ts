@@ -51,7 +51,7 @@ export function createCacheStore(kind: CacheStoreKind): CacheStore {
  * Default factory from the spec: memory vs persist (Web Storage).
  * Also accepts a store kind to pick any CacheStore adapter.
  */
-export function useCacheStore(persistOrKind: boolean | CacheStoreKind = false): CacheStore {
+export function resolveCacheStore(persistOrKind: boolean | CacheStoreKind = false): CacheStore {
   if (persistOrKind === true) return createStorageStore()
   if (persistOrKind === false) return createMemoryStore()
   return createCacheStore(persistOrKind)

@@ -1,7 +1,7 @@
 // Core
 export {
-  inject,
-  useRequestor,
+  injectRequestor,
+  getRequestor,
   resetRequestor,
   createHttpResponse,
   buildConfig,
@@ -15,7 +15,7 @@ export {
   createWebSQLStore,
   createCookieStore,
   createCacheStore,
-  useCacheStore,
+  resolveCacheStore,
   createCacheRequestor,
   hashRequest,
   createIdempotentRequestor,
@@ -45,12 +45,12 @@ export {
   unwrapEnvelope,
   isApiEnvelope,
   configureBus,
-  setToken,
-  getToken,
+  setRequestToken,
+  getRequestToken,
   getBusConfig,
   attachBus,
   injectBus,
-  bootstrap,
+  bootstrapRequestor,
   busCall,
   busRequest,
   publishArticle,
@@ -64,13 +64,13 @@ export {
 
 // Adapters / transport switching
 export {
-  setup,
+  setupFlyreq,
   setBackend,
   registerAdapter,
   listBackends,
   getBackend,
   createBackend,
-  type SetupOptions,
+  type SetupFlyreqOptions,
   type BackendName,
   type FlyreqFileConfig,
 } from './setup'

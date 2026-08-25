@@ -1,7 +1,7 @@
 import type { EventfulRequestor, PlainResponse, RequestConfig, Requestor } from '../types'
 import { createHttpResponse, wrapRequestor } from '../requestor'
 import { resolveBase } from '../inject'
-import { useCacheStore, type CacheStore, type CacheStoreKind } from './store'
+import { resolveCacheStore, type CacheStore, type CacheStoreKind } from './store'
 
 export interface CacheRequestorOptions {
   key?: (config: RequestConfig) => string
@@ -34,7 +34,7 @@ function normalizeOptions(options: CacheRequestorOptions = {}) {
 
 export function createCacheRequestor(cacheOptions: CacheRequestorOptions = {}): EventfulRequestor {
   const options = normalizeOptions(cacheOptions)
-  const store = options.store ?? useCacheStore(options.storeKind ?? options.persist)
+  const store = options.store ?? resolveCacheStore(options.storeKind ?? options.persist)
   const base = resolveBase(options.base)
 
   const requestor = wrapRequestor(base, async (_config, next) => next())

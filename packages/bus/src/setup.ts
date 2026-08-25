@@ -1,7 +1,7 @@
 import {
   buildConfig,
   defineRequestor,
-  inject,
+  injectRequestor,
   type HttpMethod,
   type RequestConfig,
   type RequestOptions,
@@ -12,7 +12,7 @@ import { BusError, unwrapEnvelope, type ApiEnvelope } from './protocol'
 export interface BusConfig {
   baseURL?: string
   successCode?: number
-  getToken?: () => string | undefined | null
+  getRequestToken?: () => string | undefined | null
   /** Header name for token; default Authorization */
   authHeader?: string
 }
@@ -28,12 +28,12 @@ export function configureBus(config: BusConfig): void {
   busConfig = { ...busConfig, ...config }
 }
 
-export function setToken(value: string | undefined): void {
+export function setRequestToken(value: string | undefined): void {
   token = value
 }
 
-export function getToken(): string | undefined {
-  return busConfig.getToken?.() ?? token
+export function getRequestToken(): string | undefined {
+  return busConfig.getRequestToken?.() ?? token
 }
 
 export function getBusConfig(): BusConfig {
@@ -43,7 +43,7 @@ export function getBusConfig(): BusConfig {
 function applyBusDefaults(config: RequestConfig): RequestConfig {
   const headers = { ...(config.headers ?? {}) }
   const authHeader = busConfig.authHeader ?? 'Authorization'
-  const t = getToken()
+  const t = getRequestToken()
   const skipAuth = config.meta?.auth === false
   if (t && !skipAuth && !headers[authHeader]) {
     headers[authHeader] = t.startsWith('Bearer ') ? t : `Bearer ${t}`
@@ -65,12 +65,12 @@ export function attachBus(base: Requestor): Requestor {
  * `request-core` only depends on the Requestor interface; pass axios / fetch / xhr here.
  *
  * ```ts
- * import { bootstrap } from '@flyreq/bus'
+ * import { bootstrapRequestor } from '@flyreq/bus'
  * import { requestor } from '@flyreq/axios'
- * bootstrap(requestor)
+ * bootstrapRequestor(requestor)
  * ```
  */
-export function bootstrap(requestor: Requestor, config?: BusConfig): Requestor {
+export function bootstrapRequestor(requestor: Requestor, config?: BusConfig): Requestor {
   if (config) configureBus(config)
   return injectBus(requestor)
 }
@@ -78,7 +78,7 @@ export function bootstrap(requestor: Requestor, config?: BusConfig): Requestor {
 /** Attach bus defaults and inject as the global Requestor */
 export function injectBus(base: Requestor): Requestor {
   const wrapped = attachBus(base)
-  inject(wrapped)
+  injectRequestor(wrapped)
   return wrapped
 }
 

@@ -1,79 +1,80 @@
 /**
- * Minimal flyreq umbrella usage (mock Requestor — no network).
+ * flyreq 示例：按场景跑用法（mock 传输，不访问真实网络）
  *
  *   pnpm --filter @flyreq/example-basic start
+ *   pnpm --filter @flyreq/example-basic start -- retry
+ *   pnpm --filter @flyreq/example-basic start -- list
  */
-import {
-  setup,
-  setBackend,
-  setToken,
-  busCall,
-  createCacheRequestor,
-  createRetryRequestor,
-  createHttpResponse,
-  registerAdapter,
-  getBackend,
-  type RequestConfig,
-  type Requestor,
-} from 'flyreq'
+import { runSetup } from './scenarios/01-setup'
+import { runBusProtocol } from './scenarios/02-bus-protocol'
+import { runRetry } from './scenarios/03-retry'
+import { runCache } from './scenarios/04-cache'
+import { runIdempotent } from './scenarios/05-idempotent'
+import { runFlowControl } from './scenarios/06-serial-parallel'
+import { runCustomAdapter } from './scenarios/07-custom-adapter'
+import { runCustomStore } from './scenarios/08-custom-store'
+import { runTemplates } from './scenarios/09-templates'
+import { runHooks } from './scenarios/10-hooks'
 
-function createEchoRequestor(): Requestor {
-  async function request(config: RequestConfig) {
-    console.log(`[echo] ${config.method} ${config.url}`, config.headers, config.body ?? config.params)
-    return createHttpResponse({
-      status: 200,
-      statusText: 'OK',
-      headers: { 'content-type': 'application/json' },
-      data: { code: 0, data: { echoed: true, url: config.url, backend: getBackend() }, message: 'ok' },
-      url: config.url,
-    })
-  }
-  return {
-    request,
-    get(url, options) {
-      return request({ method: 'GET', url, ...options })
-    },
-    post(url, data, options) {
-      return request({ method: 'POST', url, body: data, ...options })
-    },
-    put(url, data, options) {
-      return request({ method: 'PUT', url, body: data, ...options })
-    },
-    patch(url, data, options) {
-      return request({ method: 'PATCH', url, body: data, ...options })
-    },
-    delete(url, options) {
-      return request({ method: 'DELETE', url, ...options })
-    },
-  }
+const scenarios: Record<string, () => Promise<void>> = {
+  setup: runSetup,
+  bus: runBusProtocol,
+  retry: runRetry,
+  cache: runCache,
+  idempotent: runIdempotent,
+  flow: runFlowControl,
+  adapter: runCustomAdapter,
+  store: runCustomStore,
+  templates: runTemplates,
+  hooks: runHooks,
 }
 
-async function main() {
-  registerAdapter('echo', () => createEchoRequestor())
-  setup({
-    baseURL: 'https://api.example.com',
-    backend: 'echo',
-    ignoreConfigFile: true,
-  })
-  setToken('demo-token')
+function printHelp(): void {
+  console.log(`flyreq example scenarios
 
-  console.log('backend:', getBackend())
+Usage:
+  pnpm --filter @flyreq/example-basic start
+  pnpm --filter @flyreq/example-basic start -- <name>
+  pnpm --filter @flyreq/example-basic start -- list
 
-  const retry = createRetryRequestor({ maxCount: 2 })
-  const data = await busCall<{ echoed: boolean, backend?: string }>(retry, 'GET', '/api/ping', undefined, {
-    meta: { auth: true },
-  })
-  console.log('busCall result:', data)
-
-  // Switch transport at runtime (still echo — demonstrates API)
-  setBackend('echo')
-  const cached = createCacheRequestor({ duration: 60_000 })
-  await cached.get('/api/cached')
-  await cached.get('/api/cached')
-  console.log('done')
+Names:
+${Object.keys(scenarios).map((k) => `  ${k}`).join('\n')}
+`)
 }
 
-main().catch((e) => {
-  console.error(e)
+async function main(): Promise<void> {
+  const name = process.argv.slice(2).find((a) => a !== '--')
+
+  if (name === '-h' || name === '--help' || name === 'help') {
+    printHelp()
+    return
+  }
+  if (name === 'list') {
+    console.log(Object.keys(scenarios).join('\n'))
+    return
+  }
+  if (name && !scenarios[name]) {
+    console.error(`Unknown scenario "${name}". Try: list`)
+    printHelp()
+    process.exitCode = 1
+    return
+  }
+
+  const selected = name
+    ? { [name]: scenarios[name] }
+    : scenarios
+
+  for (const [key, run] of Object.entries(selected)) {
+    console.log(`\n${'═'.repeat(56)}`)
+    console.log(`  scenario: ${key}`)
+    console.log('═'.repeat(56))
+    await run()
+  }
+
+  console.log('\nall scenarios finished.\n')
+}
+
+main().catch((err) => {
+  console.error(err)
   process.exitCode = 1
 })

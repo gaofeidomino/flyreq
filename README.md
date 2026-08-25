@@ -14,15 +14,17 @@ pnpm add flyreq
 
 即可使用（默认传输：**axios**）。无需再分别安装 `@flyreq/core` / `@flyreq/axios` / `@flyreq/bus`。
 
+分场景、自定义适配器 / 存储的可运行示例见 [`examples/basic`](examples/basic)。
+
 开发依赖（可选，用于 CLI）：`flyreq` 已自带 `flyreq` 命令；若只要 codegen 也可 `pnpm add -D @flyreq/cli`。
 
 ### 快速使用
 
 ```ts
-import { setup, setToken, busCall, createRetryRequestor } from 'flyreq'
+import { setupFlyreq, setRequestToken, busCall, createRetryRequestor } from 'flyreq'
 
-setup({ baseURL: 'https://api.example.com' }) // 默认 axios
-setToken('your-jwt')
+setupFlyreq({ baseURL: 'https://api.example.com' }) // 默认 axios
+setRequestToken('your-jwt')
 
 const req = createRetryRequestor(3)
 const data = await busCall(req, 'GET', '/api/user/me')
@@ -31,18 +33,18 @@ const data = await busCall(req, 'GET', '/api/user/me')
 DIP 接线（bus 注入具体实现，core 只依赖 `Requestor` 接口）：
 
 ```ts
-import { bootstrap } from 'flyreq'
+import { bootstrapRequestor } from 'flyreq'
 import { requestor } from '@flyreq/axios' // 换成 @flyreq/fetch 或 @flyreq/xhr 即可
 
-bootstrap(requestor, { baseURL: 'https://api.example.com' })
+bootstrapRequestor(requestor, { baseURL: 'https://api.example.com' })
 ```
 
 ### 切换传输层（代码）
 
 ```ts
-import { setup, setBackend } from 'flyreq'
+import { setupFlyreq, setBackend } from 'flyreq'
 
-setup({ baseURL: 'https://api.example.com', backend: 'fetch' })
+setupFlyreq({ baseURL: 'https://api.example.com', backend: 'fetch' })
 setBackend('axios')
 setBackend('xhr')
 ```
@@ -55,7 +57,7 @@ flyreq use axios
 flyreq use xhr
 ```
 
-`setup()` 在 Node 下会自动读取 `flyreq.config.json`。
+`setupFlyreq()` 在 Node 下会自动读取 `flyreq.config.json`。
 
 ### 自定义 / 未来适配器
 
@@ -74,8 +76,8 @@ setBackend(myRequestor)
 
 | 方案 | 工厂 |
 |------|------|
-| 内存 | `createMemoryStore()` / `useCacheStore(false)` |
-| Web Storage | `createStorageStore()` / `useCacheStore(true)` |
+| 内存 | `createMemoryStore()` / `resolveCacheStore(false)` |
+| Web Storage | `createStorageStore()` / `resolveCacheStore(true)` |
 | IndexedDB | `createIndexedDBStore()` |
 | Cache API (SW) | `createServiceWorkerStore()` |
 | WebSQL | `createWebSQLStore()` |
@@ -126,11 +128,11 @@ flyreq gen -o ./src/generated
 | 包 | 说明 |
 |----|------|
 | `flyreq` | **推荐** 伞包（单包安装） |
-| `@flyreq/core` | Requestor / CacheStore 接口、inject、缓存 / 幂等 / 重试 / 串行 / 并发 |
+| `@flyreq/core` | Requestor / CacheStore 接口、injectRequestor、缓存 / 幂等 / 重试 / 串行 / 并发 |
 | `@flyreq/axios` | axios 实现 |
 | `@flyreq/fetch` | fetch 实现 |
 | `@flyreq/xhr` | XMLHttpRequest 实现 |
-| `@flyreq/bus` | 协议层 + `bootstrap(requestor)` 注入；不自动绑定传输 |
+| `@flyreq/bus` | 协议层 + `bootstrapRequestor(requestor)` 注入；不自动绑定传输 |
 | `@flyreq/cli` | `gen`（可拉接口平台）/ `use` |
 
 拷贝 `packages/*` 进业务仓库时，优先改 bus 协议字段。
@@ -141,14 +143,15 @@ flyreq gen -o ./src/generated
 pnpm install
 pnpm build
 pnpm test
-pnpm --filter @flyreq/example-basic start
+pnpm --filter @flyreq/example-basic start            # 全部场景
+pnpm --filter @flyreq/example-basic start -- cache   # 单个场景，见 examples/basic
 ```
 
 ## 架构
 
 ```text
 flyreq (request-lib)
-  ├── request-bus    @flyreq/bus     bootstrap(requestor) 注入实现
+  ├── request-bus    @flyreq/bus     bootstrapRequestor(requestor) 注入实现
   ├── request-core   @flyreq/core    Requestor / CacheStore 接口
   └── request-imp    axios / fetch / xhr / ...
                      实现 core 中的接口，core 不依赖任何传输库

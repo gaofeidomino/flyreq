@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { resetRequestor, useRequestor } from '@flyreq/core'
+import { resetRequestor, getRequestor } from '@flyreq/core'
 import {
-  setup,
+  setupFlyreq,
   setBackend,
   registerAdapter,
   listBackends,
@@ -45,7 +45,7 @@ beforeEach(() => {
 
 describe('adapters', () => {
   it('lists builtin backends after setup', () => {
-    setup({ ignoreConfigFile: true, backend: 'fetch' })
+    setupFlyreq({ ignoreConfigFile: true, backend: 'fetch' })
     expect(listBackends()).toEqual(expect.arrayContaining(['axios', 'fetch', 'xhr']))
     expect(getBackend()).toBe('fetch')
   })
@@ -54,14 +54,14 @@ describe('adapters', () => {
     registerAdapter('echo', () => createEcho('echo'))
     setBackend('echo')
     expect(getBackend()).toBe('echo')
-    const resp = await useRequestor().get('/x')
+    const resp = await getRequestor().get('/x')
     expect(await resp.json()).toMatchObject({ code: 0, data: { label: 'echo' } })
   })
 
   it('setBackend accepts Requestor instance', async () => {
     setBackend(createEcho('direct'))
     expect(getBackend()).toBe('custom')
-    const resp = await useRequestor().get('/y')
+    const resp = await getRequestor().get('/y')
     const body = await resp.json<{ data: { label: string } }>()
     expect(body.data.label).toBe('direct')
   })

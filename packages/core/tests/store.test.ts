@@ -3,7 +3,7 @@ import {
   createCacheStore,
   createMemoryStore,
   createStorageStore,
-  useCacheStore,
+  resolveCacheStore,
   type CacheStore,
 } from '../src/index'
 
@@ -35,8 +35,8 @@ async function assertStoreContract(store: CacheStore) {
 }
 
 describe('CacheStore DIP', () => {
-  it('useCacheStore(false) is memory', async () => {
-    const store = useCacheStore(false)
+  it('resolveCacheStore(false) is memory', async () => {
+    const store = resolveCacheStore(false)
     await assertStoreContract(store)
   })
 
@@ -56,8 +56,8 @@ describe('CacheStore DIP', () => {
       await assertStoreContract(createStorageStore())
     })
 
-    it('useCacheStore(true) uses storage', async () => {
-      await assertStoreContract(useCacheStore(true))
+    it('resolveCacheStore(true) uses storage', async () => {
+      await assertStoreContract(resolveCacheStore(true))
     })
   })
 

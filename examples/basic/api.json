@@ -18,6 +18,26 @@
         "idempotent": false,
         "cache": false,
         "pager": true
+      },
+      "getArticleById": {
+        "path": "/api/article/{id}",
+        "description": "文章详情（缓存）",
+        "method": "GET",
+        "auth": false,
+        "idempotent": false,
+        "cache": true,
+        "pager": false
+      }
+    },
+    "pay": {
+      "createPayment": {
+        "path": "/api/pay",
+        "description": "创建支付（幂等）",
+        "method": "POST",
+        "auth": true,
+        "idempotent": true,
+        "cache": false,
+        "pager": false
       }
     }
   }

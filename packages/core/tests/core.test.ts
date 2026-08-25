@@ -8,9 +8,9 @@ import {
   createSerialRequestor,
   createMemoryStore,
   hashRequest,
-  inject,
+  injectRequestor,
   resetRequestor,
-  useRequestor,
+  getRequestor,
   type HttpResponse,
   type RequestConfig,
   type Requestor,
@@ -56,22 +56,22 @@ beforeEach(() => {
   resetRequestor()
 })
 
-describe('inject', () => {
+describe('injectRequestor', () => {
   it('throws when not injected', () => {
-    expect(() => useRequestor()).toThrow(/No Requestor injected/)
+    expect(() => getRequestor()).toThrow(/No Requestor injected/)
   })
 
   it('returns injected requestor', () => {
     const { requestor } = createMockRequestor()
-    inject(requestor)
-    expect(useRequestor()).toBe(requestor)
+    injectRequestor(requestor)
+    expect(getRequestor()).toBe(requestor)
   })
 })
 
 describe('createCacheRequestor', () => {
   it('caches by default key', async () => {
     const { requestor, calls } = createMockRequestor()
-    inject(requestor)
+    injectRequestor(requestor)
     const cached = createCacheRequestor()
     const a = await cached.get('/a')
     const b = await cached.get('/a')
@@ -82,7 +82,7 @@ describe('createCacheRequestor', () => {
   it('respects duration expiry via store', async () => {
     const store = createMemoryStore()
     const { requestor, calls } = createMockRequestor()
-    inject(requestor)
+    injectRequestor(requestor)
     const cached = createCacheRequestor({ duration: 50, store })
     await cached.get('/x')
     await cached.get('/x')
@@ -96,7 +96,7 @@ describe('createCacheRequestor', () => {
 describe('createIdempotentRequestor', () => {
   it('dedupes identical requests via hash', async () => {
     const { requestor, calls } = createMockRequestor()
-    inject(requestor)
+    injectRequestor(requestor)
     const idem = createIdempotentRequestor()
     await idem.post('/pay', { orderId: 1 })
     await idem.post('/pay', { orderId: 1 })
@@ -122,7 +122,7 @@ describe('createRetryRequestor', () => {
       if (n < 3) throw new Error('fail')
       return createHttpResponse({ status: 200, statusText: 'OK', headers: {}, data: n, url: '/' })
     })
-    inject(requestor)
+    injectRequestor(requestor)
     const retry = createRetryRequestor(5)
     const resp = await retry.get('/')
     expect(await resp.json()).toBe(3)
@@ -140,7 +140,7 @@ describe('createParallelRequestor', () => {
       active--
       return createHttpResponse({ status: 200, statusText: 'OK', headers: {}, data: null, url: '/' })
     })
-    inject(requestor)
+    injectRequestor(requestor)
     const parallel = createParallelRequestor({ maxCount: 2 })
     await Promise.all([parallel.get('/1'), parallel.get('/2'), parallel.get('/3'), parallel.get('/4')])
     expect(maxActive).toBeLessThanOrEqual(2)
@@ -156,7 +156,7 @@ describe('createSerialRequestor', () => {
       order.push(id)
       return createHttpResponse({ status: 200, statusText: 'OK', headers: {}, data: id, url: config.url })
     })
-    inject(requestor)
+    injectRequestor(requestor)
     const serial = createSerialRequestor()
     await Promise.all([serial.get('1'), serial.get('2'), serial.get('3')])
     expect(order).toEqual([1, 2, 3])

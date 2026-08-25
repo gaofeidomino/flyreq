@@ -12,7 +12,7 @@ export type {
   EventfulRequestor,
 } from './types'
 
-export { inject, useRequestor, resetRequestor, resolveBase } from './inject'
+export { injectRequestor, getRequestor, resetRequestor, resolveBase } from './inject'
 export {
   createHttpResponse,
   buildConfig,
@@ -29,7 +29,7 @@ export {
   createWebSQLStore,
   createCookieStore,
   createCacheStore,
-  useCacheStore,
+  resolveCacheStore,
   type CacheStore,
   type CacheStoreKind,
   type CacheMeta,

@@ -1,12 +1,12 @@
 export { BusError, unwrapEnvelope, isApiEnvelope, type ApiEnvelope } from './protocol'
 export {
   configureBus,
-  setToken,
-  getToken,
+  setRequestToken,
+  getRequestToken,
   getBusConfig,
   attachBus,
   injectBus,
-  bootstrap,
+  bootstrapRequestor,
   busCall,
   busRequest,
   type BusConfig,

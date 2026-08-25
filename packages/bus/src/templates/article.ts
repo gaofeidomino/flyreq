@@ -1,7 +1,7 @@
 import {
   createCacheRequestor,
   createIdempotentRequestor,
-  useRequestor,
+  getRequestor,
 } from '@flyreq/core'
 import { busCall } from '../setup'
 
@@ -29,7 +29,7 @@ export const publishArticle = (() => {
  */
 export const getArticles = (() => {
   return async (page: number, size: number) => {
-    const req = useRequestor()
+    const req = getRequestor()
     return busCall<{ list: Article[], total: number }>(req, 'GET', '/api/article', undefined, {
       params: { page, size },
       meta: { auth: false },

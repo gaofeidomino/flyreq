@@ -32,7 +32,7 @@ Examples:
 
 Convention:
   Put generated files under generated/; hand-written wrappers go in overrides/.
-  Runtime setup() reads flyreq.config.json automatically (Node).
+  Runtime setupFlyreq() reads flyreq.config.json automatically (Node).
 `)
 }
 
@@ -123,7 +123,7 @@ async function main(): Promise<void> {
     const file = writeConfigBackend(parsed.backend)
     if (!(BUILTIN_BACKENDS as readonly string[]).includes(parsed.backend)) {
       console.log(`wrote ${file} (backend: ${parsed.backend})`)
-      console.log('Note: custom backends must be registerAdapter()-ed before setup().')
+      console.log('Note: custom backends must be registerAdapter()-ed before setupFlyreq().')
     }
     else {
       console.log(`wrote ${file} (backend: ${parsed.backend})`)

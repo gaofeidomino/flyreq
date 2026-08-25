@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "tsx src/main.ts"
+    "start": "tsx src/main.ts",
+    "list": "tsx src/main.ts list"
   },
   "dependencies": {
     "flyreq": "workspace:*"

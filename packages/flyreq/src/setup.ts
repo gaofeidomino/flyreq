@@ -1,5 +1,5 @@
 import type { Requestor } from '@flyreq/core'
-import { bootstrap, configureBus, type BusConfig } from '@flyreq/bus'
+import { bootstrapRequestor, configureBus, type BusConfig } from '@flyreq/bus'
 import {
   createBackend,
   getBackend,
@@ -11,7 +11,7 @@ import {
 } from './adapters'
 import { loadFlyreqConfig, type FlyreqFileConfig } from './config'
 
-export interface SetupOptions extends BusConfig {
+export interface SetupFlyreqOptions extends BusConfig {
   /** Transport adapter name; default `axios` (or value from flyreq.config.json) */
   backend?: BackendName
   /** Options passed to the adapter factory (e.g. axios CreateAxiosDefaults) */
@@ -51,18 +51,18 @@ export function setBackend(
   ensureBuiltins()
   if (isRequestor(nameOrRequestor)) {
     markBackend('custom')
-    return bootstrap(nameOrRequestor)
+    return bootstrapRequestor(nameOrRequestor)
   }
   const requestor = createBackend(nameOrRequestor, options)
   markBackend(nameOrRequestor)
-  return bootstrap(requestor)
+  return bootstrapRequestor(requestor)
 }
 
 /**
  * One-shot setup: bus protocol + backend inject.
  * Reads `flyreq.config.json` when present (Node), unless `ignoreConfigFile`.
  */
-export function setup(options: SetupOptions = {}): Requestor {
+export function setupFlyreq(options: SetupFlyreqOptions = {}): Requestor {
   ensureBuiltins()
 
   const fileConfig: FlyreqFileConfig = options.ignoreConfigFile
@@ -81,7 +81,7 @@ export function setup(options: SetupOptions = {}): Requestor {
     baseURL: options.baseURL ?? fileConfig.baseURL,
     successCode: options.successCode ?? fileConfig.successCode,
     authHeader: options.authHeader ?? fileConfig.authHeader,
-    getToken: options.getToken,
+    getRequestToken: options.getRequestToken,
     ...busFromOptions,
   }
   configureBus(busConfig)
