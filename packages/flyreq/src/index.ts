@@ -53,12 +53,17 @@ export {
   bootstrapRequestor,
   busCall,
   busRequest,
+  flyreq,
+  configureFlyreq,
+  resetFlyreqClient,
   publishArticle,
   getArticles,
   getArticleById,
   type ApiEnvelope,
   type BusConfig,
   type BusCallOptions,
+  type FlyreqCallOptions,
+  type FlyreqDefaults,
   type Article,
 } from '@flyreq/bus'
 

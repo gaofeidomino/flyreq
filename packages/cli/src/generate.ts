@@ -18,92 +18,87 @@ function toComment(text?: string): string {
   return `/**\n * ${text.replace(/\*\//g, '*\\/')}\n */\n`
 }
 
-function pickRequestor(ep: EndpointDef): string {
-  if (ep.idempotent) return 'createIdempotentRequestor()'
-  if (ep.cache) return 'createCacheRequestor()'
-  return 'getRequestor()'
+function pathParams(path: string): string[] {
+  const fromBraces = [...path.matchAll(/\{(\w+)\}/g)].map(m => m[1]!)
+  if (fromBraces.length) return fromBraces
+  return [...path.matchAll(/:(\w+)/g)].map(m => m[1]!)
 }
 
-function needsCoreImport(endpoints: Record<string, EndpointDef>): {
-  idempotent: boolean
-  cache: boolean
-  plain: boolean
-} {
-  let idempotent = false
-  let cache = false
-  let plain = false
-  for (const ep of Object.values(endpoints)) {
-    if (ep.idempotent) idempotent = true
-    else if (ep.cache) cache = true
-    else plain = true
+function pathTemplate(path: string, names: string[]): string {
+  if (!names.length) return `'${path}'`
+  let out = path
+  for (const name of names) {
+    out = out.replaceAll(`{${name}}`, `\${${name}}`)
+    out = out.replaceAll(`:${name}`, `\${${name}}`)
   }
-  return { idempotent, cache, plain }
+  return `\`${out}\``
+}
+
+function callOptions(ep: EndpointDef): string {
+  const parts: string[] = []
+  if (ep.idempotent) parts.push('idempotent: true')
+  if (ep.cache && !ep.idempotent) parts.push('cache: true')
+  if (ep.auth === false) parts.push('meta: { auth: false }')
+  else if (ep.auth === true) parts.push('meta: { auth: true }')
+  return parts.join(', ')
+}
+
+function mergeOptions(fixed: string, extraExpr: string): string {
+  if (!fixed) return extraExpr
+  return `{ ${fixed}, ...${extraExpr} }`
 }
 
 function genFunction(name: string, ep: EndpointDef): string {
   const method = (ep.method || 'GET').toUpperCase()
-  const authMeta = ep.auth === false ? 'false' : ep.auth === true ? 'true' : undefined
-  const metaPart = authMeta != null ? `meta: { auth: ${authMeta} }` : ''
-
-  const isBodyMethod = !['GET', 'DELETE', 'HEAD'].includes(method)
-  const requestorExpr = pickRequestor(ep)
-  const stateful = Boolean(ep.idempotent || ep.cache)
+  const names = pathParams(ep.path)
+  const url = pathTemplate(ep.path, names)
+  const fixed = callOptions(ep)
+  const pathSig = names.map(n => `${n}: string`).join(', ')
+  const http = method === 'DELETE' ? 'delete' : method.toLowerCase()
+  const isBodyMethod = !['GET', 'DELETE', 'HEAD', 'OPTIONS'].includes(method)
 
   let paramsSig: string
-  let callArgs: string
+  let call: string
 
   if (ep.pager) {
-    paramsSig = 'page: number, size: number'
-    const opts = [
-      'params: { page, size }',
-      metaPart,
-    ].filter(Boolean).join(', ')
-    callArgs = `undefined, { ${opts} }`
+    const head = [pathSig, 'page: number, size: number', 'options?: FlyreqCallOptions'].filter(Boolean).join(', ')
+    paramsSig = head
+    const opts = mergeOptions(
+      ['params: { page, size }', fixed].filter(Boolean).join(', '),
+      'options',
+    )
+    call = `flyreq.${http}(${url}, ${opts})`
   }
   else if (isBodyMethod) {
-    paramsSig = 'data?: unknown'
-    const opts = metaPart ? `{ ${metaPart} }` : 'undefined'
-    callArgs = `data, ${opts}`
+    const head = [pathSig, 'data?: unknown', 'options?: FlyreqCallOptions'].filter(Boolean).join(', ')
+    paramsSig = head
+    const opts = mergeOptions(fixed, 'options')
+    call = `flyreq.${http}(${url}, data, ${opts})`
   }
-  else if (metaPart) {
-    paramsSig = 'params?: Record<string, unknown>'
-    callArgs = `undefined, { params, ${metaPart} }`
+  else if (names.length) {
+    paramsSig = `${pathSig}, options?: FlyreqCallOptions`
+    const opts = mergeOptions(fixed, 'options')
+    call = `flyreq.${http}(${url}, ${opts})`
   }
   else {
-    paramsSig = 'params?: Record<string, unknown>'
-    callArgs = `undefined, { params }`
+    paramsSig = 'params?: Record<string, unknown>, options?: FlyreqCallOptions'
+    const opts = mergeOptions(
+      ['params', fixed].filter(Boolean).join(', '),
+      'options',
+    )
+    call = `flyreq.${http}(${url}, ${opts})`
   }
 
-  if (stateful) {
-    return `${toComment(ep.description)}export const ${name} = (() => {
-  let req
-  return async (${paramsSig}) => {
-    req ??= ${requestorExpr}
-    return busCall(req, '${method}', '${ep.path}', ${callArgs})
-  }
-})()
-`
-  }
-
-  return `${toComment(ep.description)}export const ${name} = (() => {
-  return async (${paramsSig}) => {
-    const req = getRequestor()
-    return busCall(req, '${method}', '${ep.path}', ${callArgs})
-  }
-})()
+  return `${toComment(ep.description)}export async function ${name}(${paramsSig}) {
+  return ${call}
+}
 `
 }
 
 export function generateResourceFile(_resourceName: string, endpoints: Record<string, EndpointDef>): string {
-  const flags = needsCoreImport(endpoints)
-  const imports: string[] = ['busCall']
-  if (flags.idempotent) imports.push('createIdempotentRequestor')
-  if (flags.cache) imports.push('createCacheRequestor')
-  if (flags.plain) imports.push('getRequestor')
-
   const lines: string[] = [
     `/* Generated by flyreq CLI — do not edit; put customizations in overrides/ */`,
-    `import { ${imports.join(', ')} } from 'flyreq'`,
+    `import { flyreq, type FlyreqCallOptions } from 'flyreq'`,
     '',
   ]
 
@@ -114,10 +109,17 @@ export function generateResourceFile(_resourceName: string, endpoints: Record<st
   return `${lines.join('\n')}\n`
 }
 
+export function generateIndexFile(resources: string[]): string {
+  return `${resources.map(r => `export * from './${r}'`).join('\n')}\n`
+}
+
 export function generateFromApiJson(api: ApiJson): Record<string, string> {
   const files: Record<string, string> = {}
+  const resources: string[] = []
   for (const [resource, endpoints] of Object.entries(api.endpoints ?? {})) {
     files[`${resource}.ts`] = generateResourceFile(resource, endpoints)
+    resources.push(resource)
   }
+  if (resources.length) files['index.ts'] = generateIndexFile(resources)
   return files
 }

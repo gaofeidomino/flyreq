@@ -5,6 +5,7 @@
  *   pnpm --filter @flyreq/example-basic start -- retry
  *   pnpm --filter @flyreq/example-basic start -- list
  */
+import { runQuick } from './scenarios/00-quick'
 import { runSetup } from './scenarios/01-setup'
 import { runBusProtocol } from './scenarios/02-bus-protocol'
 import { runRetry } from './scenarios/03-retry'
@@ -17,6 +18,7 @@ import { runTemplates } from './scenarios/09-templates'
 import { runHooks } from './scenarios/10-hooks'
 
 const scenarios: Record<string, () => Promise<void>> = {
+  quick: runQuick,
   setup: runSetup,
   bus: runBusProtocol,
   retry: runRetry,

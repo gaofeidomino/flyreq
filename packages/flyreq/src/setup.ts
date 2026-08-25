@@ -1,5 +1,5 @@
 import type { Requestor } from '@flyreq/core'
-import { bootstrapRequestor, configureBus, type BusConfig } from '@flyreq/bus'
+import { bootstrapRequestor, configureBus, configureFlyreq, type BusConfig, type FlyreqRetry } from '@flyreq/bus'
 import {
   createBackend,
   getBackend,
@@ -20,6 +20,8 @@ export interface SetupFlyreqOptions extends BusConfig {
   ignoreConfigFile?: boolean
   /** Working directory for config file lookup */
   cwd?: string
+  /** Default retry policy for `flyreq.get/post/...` (override per call). */
+  retry?: FlyreqRetry
 }
 
 let bootstrapped = false
@@ -74,6 +76,7 @@ export function setupFlyreq(options: SetupFlyreqOptions = {}): Requestor {
     adapterOptions: _a,
     ignoreConfigFile: _i,
     cwd: _c,
+    retry,
     ...busFromOptions
   } = options
 
@@ -85,6 +88,7 @@ export function setupFlyreq(options: SetupFlyreqOptions = {}): Requestor {
     ...busFromOptions,
   }
   configureBus(busConfig)
+  configureFlyreq({ retry })
 
   const backend =
     options.backend

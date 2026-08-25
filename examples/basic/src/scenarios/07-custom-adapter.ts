@@ -5,15 +5,15 @@
  * 就可以注入 core，无需改 request-core。
  */
 import {
-  busCall,
+  flyreq,
   createHttpResponse,
   defineRequestor,
   listBackends,
   registerAdapter,
+  resetFlyreqClient,
   resetRequestor,
   setBackend,
   setupFlyreq,
-  getRequestor,
   type Requestor,
 } from 'flyreq'
 import { heading, note } from '../mock'
@@ -39,6 +39,7 @@ function createOfetchLike(): Requestor {
 export async function runCustomAdapter(): Promise<void> {
   heading('1. registerAdapter + setBackend（给未来传输留扩展点）')
   resetRequestor()
+  resetFlyreqClient()
   registerAdapter('ofetch', () => createOfetchLike())
   setupFlyreq({
     backend: 'ofetch',
@@ -46,12 +47,12 @@ export async function runCustomAdapter(): Promise<void> {
     ignoreConfigFile: true,
   })
   note(`已注册: ${listBackends().join(', ')}`)
-  const a = await busCall<{ via: string }>(getRequestor(), 'GET', '/api/custom')
+  const a = await flyreq.get<{ via: string }>('/api/custom')
   note(`结果: ${JSON.stringify(a)}`)
 
   heading('2. setBackend(requestor) 直接塞实例，不必注册名字')
   const another = createOfetchLike()
   setBackend(another)
-  await busCall(getRequestor(), 'POST', '/api/custom', { n: 1 })
-  note('之后业务代码仍然 getRequestor() / createRetryRequestor()，感知不到底下是谁')
+  await flyreq.post('/api/custom', { n: 1 })
+  note('之后业务代码仍然 flyreq.get / 生成函数，感知不到底下是谁')
 }

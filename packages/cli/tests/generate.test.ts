@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { generateFromApiJson, generateResourceFile } from '../src/generate'
 
 describe('generateFromApiJson', () => {
-  it('generates per-resource files', () => {
+  it('generates per-resource files and a barrel index', () => {
     const files = generateFromApiJson({
       endpoints: {
         article: {
@@ -27,15 +27,18 @@ describe('generateFromApiJson', () => {
         },
       },
     })
-    expect(Object.keys(files)).toEqual(['article.ts'])
-    expect(files['article.ts']).toContain("from 'flyreq'")
-    expect(files['article.ts']).toContain('req ??= createIdempotentRequestor()')
-    expect(files['article.ts']).toContain('const req = getRequestor()')
-    expect(files['article.ts']).toContain("busCall(req, 'POST', '/api/article'")
+    expect(Object.keys(files)).toEqual(['article.ts', 'index.ts'])
+    expect(files['index.ts']).toContain("export * from './article'")
+    expect(files['article.ts']).toContain("import { flyreq, type FlyreqCallOptions } from 'flyreq'")
+    expect(files['article.ts']).toContain("flyreq.post('/api/article', data, { idempotent: true, meta: { auth: true }, ...options })")
     expect(files['article.ts']).toContain('page: number, size: number')
+    expect(files['article.ts']).toContain('flyreq.get')
+    expect(files['article.ts']).not.toContain('busCall')
+    expect(files['article.ts']).not.toContain('getRequestor')
+    expect(files['article.ts']).not.toContain('createIdempotentRequestor')
   })
 
-  it('uses cache requestor when cache=true', () => {
+  it('uses cache: true when cache=true', () => {
     const code = generateResourceFile('user', {
       getUser: {
         path: '/api/user',
@@ -43,6 +46,20 @@ describe('generateFromApiJson', () => {
         cache: true,
       },
     })
-    expect(code).toContain('createCacheRequestor')
+    expect(code).toContain('cache: true')
+    expect(code).toContain('flyreq.get')
+  })
+
+  it('turns path placeholders into function arguments', () => {
+    const code = generateResourceFile('article', {
+      getArticleById: {
+        path: '/api/article/{id}',
+        method: 'GET',
+        cache: true,
+        auth: false,
+      },
+    })
+    expect(code).toContain('id: string')
+    expect(code).toContain('flyreq.get(`/api/article/${id}`')
   })
 })

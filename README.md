@@ -3,8 +3,8 @@
 分层、可换传输实现的前端请求库。依赖倒置（DIP）隔离 `request-core` 与请求实现；缓存走统一 `CacheStore` 接口。
 
 - **推荐安装**：单个包 `flyreq`
-- **三层**：`request-bus` → `request-core`（接口）← `request-imp`（axios / fetch / xhr）
-- **切换传输**：改 composition root 的 inject（代码或 `flyreq use`），不必改 core
+- **日常用法**：`setupFlyreq` 一次，然后 `flyreq.get` / `flyreq.post`，或用 CLI 生成的业务函数
+- **切换传输**：改 `setupFlyreq({ backend })` 或 `flyreq use`，不必改业务代码
 
 ## 安装
 
@@ -14,29 +14,52 @@ pnpm add flyreq
 
 即可使用（默认传输：**axios**）。无需再分别安装 `@flyreq/core` / `@flyreq/axios` / `@flyreq/bus`。
 
-分场景、自定义适配器 / 存储的可运行示例见 [`examples/basic`](examples/basic)。
+分场景可运行示例见 [`examples/basic`](examples/basic)。
 
 开发依赖（可选，用于 CLI）：`flyreq` 已自带 `flyreq` 命令；若只要 codegen 也可 `pnpm add -D @flyreq/cli`。
 
 ### 快速使用
 
 ```ts
-import { setupFlyreq, setRequestToken, busCall, createRetryRequestor } from 'flyreq'
+import { setupFlyreq, flyreq } from 'flyreq'
 
-setupFlyreq({ baseURL: 'https://api.example.com' }) // 默认 axios
-setRequestToken('your-jwt')
+setupFlyreq({
+  baseURL: 'https://api.example.com',
+  token: 'your-jwt', // 或 () => store.token
+})
 
-const req = createRetryRequestor(3)
-const data = await busCall(req, 'GET', '/api/user/me')
+const me = await flyreq.get('/api/user/me')
+await flyreq.post('/api/article', { title: 'Hi' })
 ```
 
-DIP 接线（bus 注入具体实现，core 只依赖 `Requestor` 接口）：
+调用级能力（不必先 `createXxxRequestor`）：
 
 ```ts
-import { bootstrapRequestor } from 'flyreq'
-import { requestor } from '@flyreq/axios' // 换成 @flyreq/fetch 或 @flyreq/xhr 即可
+await flyreq.get('/api/article', { cache: 60_000, retry: 3 })
+await flyreq.post('/api/pay', body, { idempotent: true })
+```
 
-bootstrapRequestor(requestor, { baseURL: 'https://api.example.com' })
+全局默认重试：
+
+```ts
+setupFlyreq({ baseURL: 'https://api.example.com', retry: 3 })
+```
+
+接口平台生成的函数是正路：
+
+```bash
+flyreq gen ./api.json -o ./src/generated
+```
+
+```ts
+import { setupFlyreq } from 'flyreq'
+import { getArticles, publishArticle } from './generated'
+
+setupFlyreq({ baseURL: 'https://api.example.com', token: () => getToken() })
+
+await getArticles(1, 10)
+await publishArticle({ title: 'Hi', content: '...' })
+await publishArticle(article, { retry: 3 }) // overrides 里叠选项，不要改 generated/
 ```
 
 ### 切换传输层（代码）
@@ -72,7 +95,7 @@ setBackend(myRequestor)
 
 ## 请求缓存与存储 DIP
 
-`createCacheRequestor` 只依赖 `CacheStore` 统一接口。实现可替换，不影响缓存逻辑：
+`{ cache: 60_000 }` 默认走内存仓库。需要换存储时，仍只依赖 `CacheStore` 接口：
 
 | 方案 | 工厂 |
 |------|------|
@@ -84,17 +107,14 @@ setBackend(myRequestor)
 | Cookie | `createCookieStore()` |
 
 ```ts
-import { createCacheRequestor, createIndexedDBStore } from 'flyreq'
+await flyreq.get('/api/profile', { cache: 60_000 })
 
-const req = createCacheRequestor({
-  persist: true,
-  duration: 60_000,
-  key: (config) => config.url,
+await flyreq.get('/api/profile', {
+  cache: { persist: true, duration: 60_000 },
 })
 
-const idb = createCacheRequestor({
-  store: createIndexedDBStore(),
-  duration: 60_000,
+await flyreq.get('/api/profile', {
+  cache: { store: createIndexedDBStore(), duration: 60_000 },
 })
 ```
 
@@ -102,7 +122,7 @@ const idb = createCacheRequestor({
 
 ## CLI 生成样板
 
-从本地 JSON 或**接口平台**拉取最新配置，再生成 `request-bus` 样板：
+从本地 JSON 或**接口平台**拉取最新配置，再生成业务函数：
 
 ```bash
 pnpm exec flyreq gen ./api.json -o ./src/generated
@@ -119,7 +139,7 @@ pnpm exec flyreq gen https://api-platform.example.com/export -o ./src/generated
 flyreq gen -o ./src/generated
 ```
 
-约定：生成放 `generated/`；个性化放 `overrides/`（v1 不做补丁引擎）。
+约定：生成放 `generated/`（含 `index.ts`）；个性化放 `overrides/`（对生成函数传入 `{ retry, cache }`，不要改生成物）。
 
 ## 源码拷贝 / 按层安装（高级）
 
@@ -132,8 +152,18 @@ flyreq gen -o ./src/generated
 | `@flyreq/axios` | axios 实现 |
 | `@flyreq/fetch` | fetch 实现 |
 | `@flyreq/xhr` | XMLHttpRequest 实现 |
-| `@flyreq/bus` | 协议层 + `bootstrapRequestor(requestor)` 注入；不自动绑定传输 |
+| `@flyreq/bus` | 协议层 + `flyreq.get/post` 客户端；`bootstrapRequestor` 注入 |
 | `@flyreq/cli` | `gen`（可拉接口平台）/ `use` |
+
+DIP 手动接线（一般用不到）：
+
+```ts
+import { bootstrapRequestor, flyreq } from 'flyreq'
+import { requestor } from '@flyreq/axios'
+
+bootstrapRequestor(requestor, { baseURL: 'https://api.example.com', token: 'jwt' })
+await flyreq.get('/api/user/me')
+```
 
 拷贝 `packages/*` 进业务仓库时，优先改 bus 协议字段。
 
@@ -144,6 +174,7 @@ pnpm install
 pnpm build
 pnpm test
 pnpm --filter @flyreq/example-basic start            # 全部场景
+pnpm --filter @flyreq/example-basic start -- quick   # 日常用法
 pnpm --filter @flyreq/example-basic start -- cache   # 单个场景，见 examples/basic
 ```
 
@@ -151,7 +182,7 @@ pnpm --filter @flyreq/example-basic start -- cache   # 单个场景，见 exampl
 
 ```text
 flyreq (request-lib)
-  ├── request-bus    @flyreq/bus     bootstrapRequestor(requestor) 注入实现
+  ├── request-bus    @flyreq/bus     协议 + flyreq.get/post
   ├── request-core   @flyreq/core    Requestor / CacheStore 接口
   └── request-imp    axios / fetch / xhr / ...
                      实现 core 中的接口，core 不依赖任何传输库

@@ -1,9 +1,4 @@
-import {
-  createCacheRequestor,
-  createIdempotentRequestor,
-  getRequestor,
-} from '@flyreq/core'
-import { busCall } from '../setup'
+import { flyreq, type FlyreqCallOptions } from '../client'
 
 export interface Article {
   title: string
@@ -11,44 +6,29 @@ export interface Article {
   id?: string
 }
 
-/**
- * Publish article (idempotent) — hand-written template sample
- */
-export const publishArticle = (() => {
-  let req: ReturnType<typeof createIdempotentRequestor> | undefined
-  return async (article: Article) => {
-    req ??= createIdempotentRequestor()
-    return busCall<Article>(req, 'POST', '/api/article', article, {
-      meta: { auth: true },
-    })
-  }
-})()
+/** Publish article (idempotent) */
+export function publishArticle(article: Article, options?: FlyreqCallOptions) {
+  return flyreq.post<Article>('/api/article', article, {
+    idempotent: true,
+    meta: { auth: true },
+    ...options,
+  })
+}
 
-/**
- * Get articles with pager
- */
-export const getArticles = (() => {
-  return async (page: number, size: number) => {
-    const req = getRequestor()
-    return busCall<{ list: Article[], total: number }>(req, 'GET', '/api/article', undefined, {
-      params: { page, size },
-      meta: { auth: false },
-    })
-  }
-})()
+/** Get articles with pager */
+export function getArticles(page: number, size: number, options?: FlyreqCallOptions) {
+  return flyreq.get<{ list: Article[], total: number }>('/api/article', {
+    params: { page, size },
+    meta: { auth: false },
+    ...options,
+  })
+}
 
-/**
- * Cached article detail example
- */
-export const getArticleById = (() => {
-  let req: ReturnType<typeof createCacheRequestor> | undefined
-  return async (id: string) => {
-    req ??= createCacheRequestor({
-      duration: 60_000,
-      key: (c) => `article:${c.url}:${JSON.stringify(c.params ?? {})}`,
-    })
-    return busCall<Article>(req, 'GET', `/api/article/${id}`, undefined, {
-      meta: { auth: false },
-    })
-  }
-})()
+/** Cached article detail */
+export function getArticleById(id: string, options?: FlyreqCallOptions) {
+  return flyreq.get<Article>(`/api/article/${id}`, {
+    cache: 60_000,
+    meta: { auth: false },
+    ...options,
+  })
+}

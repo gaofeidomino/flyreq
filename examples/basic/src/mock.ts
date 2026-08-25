@@ -2,8 +2,8 @@ import {
   createHttpResponse,
   defineRequestor,
   registerAdapter,
+  resetFlyreqClient,
   resetRequestor,
-  setRequestToken,
   setupFlyreq,
   type RequestConfig,
   type Requestor,
@@ -99,14 +99,15 @@ export function createMockRequestor(options: MockOptions = {}): MockTransport {
 /** Reset DIP inject, register this mock as `backend: 'mock'`, attach bus protocol. */
 export function bootMock(options: MockOptions = {}): MockTransport {
   resetRequestor()
+  resetFlyreqClient()
   const mock = createMockRequestor(options)
   registerAdapter('mock', () => mock.requestor)
   setupFlyreq({
     baseURL: 'https://api.example.com',
     backend: 'mock',
+    token: 'demo-token',
     ignoreConfigFile: true,
   })
-  setRequestToken('demo-token')
   return mock
 }
 

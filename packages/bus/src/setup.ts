@@ -15,6 +15,8 @@ export interface BusConfig {
   getRequestToken?: () => string | undefined | null
   /** Header name for token; default Authorization */
   authHeader?: string
+  /** Static JWT or a getter. Prefer this over a separate `setRequestToken` call. */
+  token?: string | (() => string | undefined | null)
 }
 
 let busConfig: BusConfig = {
@@ -22,18 +24,25 @@ let busConfig: BusConfig = {
   authHeader: 'Authorization',
 }
 
-let token: string | undefined
+let tokenValue: string | undefined
 
 export function configureBus(config: BusConfig): void {
-  busConfig = { ...busConfig, ...config }
+  const { token, ...rest } = config
+  busConfig = { ...busConfig, ...rest }
+  if (typeof token === 'function') {
+    busConfig.getRequestToken = token
+  }
+  else if (typeof token === 'string') {
+    tokenValue = token
+  }
 }
 
 export function setRequestToken(value: string | undefined): void {
-  token = value
+  tokenValue = value
 }
 
 export function getRequestToken(): string | undefined {
-  return busConfig.getRequestToken?.() ?? token
+  return busConfig.getRequestToken?.() ?? tokenValue
 }
 
 export function getBusConfig(): BusConfig {

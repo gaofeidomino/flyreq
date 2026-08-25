@@ -1,10 +1,13 @@
 import type { EventfulRequestor, RequestConfig, Requestor } from './types'
 import { createCacheRequestor } from './cache/createCacheRequestor'
+import type { CacheStore } from './cache/store'
 import { hashRequest } from './hash'
 
 export interface IdempotentRequestorOptions {
   key?: (config: RequestConfig) => string
   base?: Requestor
+  /** Shared store so per-call wrappers still dedupe. */
+  store?: CacheStore
 }
 
 export function createIdempotentRequestor(
@@ -19,5 +22,6 @@ export function createIdempotentRequestor(
     key: (config) => (options.key ? options.key(config) : hashRequest(config)),
     persist: false,
     base: options.base,
+    store: options.store,
   })
 }

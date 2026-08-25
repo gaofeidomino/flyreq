@@ -7,6 +7,9 @@ import {
   listBackends,
   getBackend,
   createHttpResponse,
+  flyreq,
+  resetFlyreqClient,
+  type RequestConfig,
   type Requestor,
 } from '../src/index'
 
@@ -41,6 +44,7 @@ function createEcho(label: string): Requestor {
 
 beforeEach(() => {
   resetRequestor()
+  resetFlyreqClient()
 })
 
 describe('adapters', () => {
@@ -64,5 +68,24 @@ describe('adapters', () => {
     const resp = await getRequestor().get('/y')
     const body = await resp.json<{ data: { label: string } }>()
     expect(body.data.label).toBe('direct')
+  })
+
+  it('setupFlyreq token is sent on flyreq.get', async () => {
+    const calls: RequestConfig[] = []
+    registerAdapter('echo', () => ({
+      ...createEcho('tok'),
+      async request(config) {
+        calls.push(config)
+        return createEcho('tok').request(config)
+      },
+    }))
+    setupFlyreq({
+      ignoreConfigFile: true,
+      backend: 'echo',
+      token: 'abc',
+    })
+    const data = await flyreq.get<{ label: string }>('/me')
+    expect(data.label).toBe('tok')
+    expect(calls[0]?.headers?.Authorization).toBe('Bearer abc')
   })
 })
