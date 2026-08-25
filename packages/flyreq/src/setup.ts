@@ -9,17 +9,12 @@ import {
   registerBuiltinAdapters,
   type BackendName,
 } from './adapters'
-import { loadFlyreqConfig, type FlyreqFileConfig } from './config'
 
 export interface SetupFlyreqOptions extends BusConfig {
-  /** Transport adapter name; default `axios` (or value from flyreq.config.json) */
+  /** Transport adapter name; default `axios` */
   backend?: BackendName
   /** Options passed to the adapter factory (e.g. axios CreateAxiosDefaults) */
   adapterOptions?: unknown
-  /** Skip reading flyreq.config.json */
-  ignoreConfigFile?: boolean
-  /** Working directory for config file lookup */
-  cwd?: string
   /** Default retry policy for `flyreq.get/post/...` (override per call). */
   retry?: FlyreqRetry
 }
@@ -62,43 +57,21 @@ export function setBackend(
 
 /**
  * One-shot setup: bus protocol + backend inject.
- * Reads `flyreq.config.json` when present (Node), unless `ignoreConfigFile`.
+ *
+ * Stays free of Node APIs so bundlers never pull `node:fs` into a browser
+ * bundle. To read `flyreq.config.json`, use `setupFlyreqFromConfig` from
+ * `flyreq/node`.
  */
 export function setupFlyreq(options: SetupFlyreqOptions = {}): Requestor {
   ensureBuiltins()
 
-  const fileConfig: FlyreqFileConfig = options.ignoreConfigFile
-    ? {}
-    : (loadFlyreqConfig(options.cwd) ?? {})
+  const { backend, adapterOptions, retry, ...busConfig } = options
 
-  const {
-    backend: _b,
-    adapterOptions: _a,
-    ignoreConfigFile: _i,
-    cwd: _c,
-    retry,
-    ...busFromOptions
-  } = options
-
-  const busConfig: BusConfig = {
-    baseURL: options.baseURL ?? fileConfig.baseURL,
-    successCode: options.successCode ?? fileConfig.successCode,
-    authHeader: options.authHeader ?? fileConfig.authHeader,
-    getRequestToken: options.getRequestToken,
-    ...busFromOptions,
-  }
   configureBus(busConfig)
   configureFlyreq({ retry })
 
-  const backend =
-    options.backend
-    ?? fileConfig.backend
-    ?? getBackend()
-    ?? 'axios'
-
-  const adapterOptions = options.adapterOptions
-  return setBackend(backend, adapterOptions)
+  return setBackend(backend ?? getBackend() ?? 'axios', adapterOptions)
 }
 
 export { registerAdapter, listBackends, getBackend, createBackend }
-export type { BackendName, FlyreqFileConfig }
+export type { BackendName }

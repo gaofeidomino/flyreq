@@ -88,7 +88,17 @@ flyreq use axios
 flyreq use xhr
 ```
 
-`setupFlyreq()` 在 Node 下会自动读取 `flyreq.config.json`。
+`flyreq use` 把选择写进 `flyreq.config.json`。主入口 `flyreq` 不含任何 Node API，
+所以浏览器构建里不会出现 `node:fs`；想让配置文件生效，在 Node / SSR 侧改用
+`flyreq/node`：
+
+```ts
+import { setupFlyreqFromConfig } from 'flyreq/node'
+
+setupFlyreqFromConfig() // 读取 flyreq.config.json，显式传入的选项优先
+```
+
+纯浏览器项目直接把 `backend` 写在 `setupFlyreq()` 里即可。
 
 ### 自定义 / 未来适配器
 
@@ -204,3 +214,7 @@ flyreq (request-lib)
   └── request-imp    axios / fetch / xhr / ...
                      实现 core 中的接口，core 不依赖任何传输库
 ```
+
+## License
+
+MIT

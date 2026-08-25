@@ -64,6 +64,9 @@ export {
   type BusCallOptions,
   type FlyreqCallOptions,
   type FlyreqDefaults,
+  type FlyreqRetry,
+  type FlyreqCache,
+  type FlyreqIdempotent,
   type Article,
 } from '@flyreq/bus'
 
@@ -77,10 +80,7 @@ export {
   createBackend,
   type SetupFlyreqOptions,
   type BackendName,
-  type FlyreqFileConfig,
 } from './setup'
-
-export { loadFlyreqConfig, writeFlyreqConfig } from './config'
 
 // Low-level creators (advanced)
 export { createAxiosRequestor, requestor as axiosRequestor } from '@flyreq/axios'

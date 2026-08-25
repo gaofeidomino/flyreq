@@ -27,7 +27,6 @@ export async function runSetup(): Promise<void> {
     baseURL: 'https://api.example.com',
     backend: 'mock',
     token: 'demo-token',
-    ignoreConfigFile: true,
   })
   note(`当前 backend: ${getBackend()}`)
   note(`已注册: ${listBackends().join(', ')}`)
