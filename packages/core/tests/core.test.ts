@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import {
+  buildConfig,
   createCacheRequestor,
   createHttpResponse,
   createIdempotentRequestor,
@@ -9,6 +10,7 @@ import {
   createMemoryStore,
   hashRequest,
   injectRequestor,
+  pathnameOf,
   resetRequestor,
   getRequestor,
   type HttpResponse,
@@ -79,6 +81,28 @@ describe('createCacheRequestor', () => {
     expect(await a.json()).toEqual(await b.json())
   })
 
+  it('does not cache a failed response', async () => {
+    const { requestor, calls } = createMockRequestor(async (config) =>
+      createHttpResponse({ status: 500, statusText: 'Boom', headers: {}, data: null, url: config.url }),
+    )
+    injectRequestor(requestor)
+    const cached = createCacheRequestor({ duration: 60_000 })
+    await cached.get('/boom')
+    await cached.get('/boom')
+    expect(calls).toHaveLength(2)
+  })
+
+  it('shares one in-flight request between concurrent callers', async () => {
+    const { requestor, calls } = createMockRequestor(async (config) => {
+      await new Promise((r) => setTimeout(r, 20))
+      return createHttpResponse({ status: 200, statusText: 'OK', headers: {}, data: calls.length, url: config.url })
+    })
+    injectRequestor(requestor)
+    const cached = createCacheRequestor()
+    await Promise.all([cached.get('/same'), cached.get('/same')])
+    expect(calls).toHaveLength(1)
+  })
+
   it('respects duration expiry via store', async () => {
     const store = createMemoryStore()
     const { requestor, calls } = createMockRequestor()
@@ -104,6 +128,32 @@ describe('createIdempotentRequestor', () => {
     await idem.post('/pay', { orderId: 2 })
     expect(calls).toHaveLength(2)
   })
+
+  it('blocks a concurrent double-submit', async () => {
+    const { requestor, calls } = createMockRequestor(async (config) => {
+      await new Promise((r) => setTimeout(r, 20))
+      return createHttpResponse({ status: 200, statusText: 'OK', headers: {}, data: null, url: config.url })
+    })
+    injectRequestor(requestor)
+    const idem = createIdempotentRequestor()
+    await Promise.all([
+      idem.post('/pay', { orderId: 1 }),
+      idem.post('/pay', { orderId: 1 }),
+    ])
+    expect(calls).toHaveLength(1)
+  })
+
+  it('stops deduping once the window expires', async () => {
+    const { requestor, calls } = createMockRequestor()
+    injectRequestor(requestor)
+    const idem = createIdempotentRequestor({ duration: 50 })
+    await idem.post('/pay', { orderId: 1 })
+    await idem.post('/pay', { orderId: 1 })
+    expect(calls).toHaveLength(1)
+    await new Promise((r) => setTimeout(r, 60))
+    await idem.post('/pay', { orderId: 1 })
+    expect(calls).toHaveLength(2)
+  })
 })
 
 describe('hashRequest', () => {
@@ -111,6 +161,26 @@ describe('hashRequest', () => {
     const a: RequestConfig = { method: 'POST', url: '/a', body: { z: 1, a: 2 }, headers: { b: '1', a: '2' } }
     const b: RequestConfig = { method: 'POST', url: '/a', body: { a: 2, z: 1 }, headers: { a: '2', b: '1' } }
     expect(hashRequest(a)).toBe(hashRequest(b))
+  })
+
+  it('produces 128-bit keys that differ per method and body', () => {
+    const base: RequestConfig = { method: 'POST', url: '/pay', body: { orderId: 1 } }
+    const hash = hashRequest(base)
+    expect(hash).toMatch(/^[0-9a-f]{32}$/)
+    expect(hashRequest({ ...base, method: 'PUT' })).not.toBe(hash)
+    expect(hashRequest({ ...base, body: { orderId: 2 } })).not.toBe(hash)
+  })
+})
+
+describe('pathnameOf', () => {
+  it('strips query, hash and origin', () => {
+    expect(pathnameOf('/api/article?page=1#top')).toBe('/api/article')
+    expect(pathnameOf('https://x.dev/api/article?page=1')).toBe('/api/article')
+    expect(pathnameOf('https://x.dev')).toBe('/')
+  })
+
+  it('is available on configs built by the library', () => {
+    expect(buildConfig('GET', '/api/article?page=1').pathname).toBe('/api/article')
   })
 })
 
@@ -126,6 +196,50 @@ describe('createRetryRequestor', () => {
     const retry = createRetryRequestor(5)
     const resp = await retry.get('/')
     expect(await resp.json()).toBe(3)
+  })
+
+  it('retries 5xx responses the transport resolved', async () => {
+    let n = 0
+    const { requestor } = createMockRequestor(async () => {
+      n++
+      const status = n < 3 ? 500 : 200
+      return createHttpResponse({ status, statusText: 'x', headers: {}, data: n, url: '/' })
+    })
+    injectRequestor(requestor)
+    const resp = await createRetryRequestor(5).get('/')
+    expect(resp.status).toBe(200)
+    expect(await resp.json()).toBe(3)
+  })
+
+  it('gives up and returns the last response when retries run out', async () => {
+    const { requestor, calls } = createMockRequestor(async () =>
+      createHttpResponse({ status: 503, statusText: 'x', headers: {}, data: null, url: '/' }),
+    )
+    injectRequestor(requestor)
+    const resp = await createRetryRequestor(2).get('/')
+    expect(resp.status).toBe(503)
+    expect(calls).toHaveLength(3)
+  })
+
+  it('leaves 4xx alone', async () => {
+    const { requestor, calls } = createMockRequestor(async () =>
+      createHttpResponse({ status: 404, statusText: 'x', headers: {}, data: null, url: '/' }),
+    )
+    injectRequestor(requestor)
+    const resp = await createRetryRequestor(5).get('/')
+    expect(resp.status).toBe(404)
+    expect(calls).toHaveLength(1)
+  })
+
+  it('shouldRetryResponse: false restores throw-only retrying', async () => {
+    const { requestor, calls } = createMockRequestor(async () =>
+      createHttpResponse({ status: 500, statusText: 'x', headers: {}, data: null, url: '/' }),
+    )
+    injectRequestor(requestor)
+    const retry = createRetryRequestor({ maxCount: 5, shouldRetryResponse: false })
+    const resp = await retry.get('/')
+    expect(resp.status).toBe(500)
+    expect(calls).toHaveLength(1)
   })
 })
 

@@ -44,6 +44,15 @@ export function createHttpResponse(plain: PlainResponse): HttpResponse {
   }
 }
 
+/** `url` without query or hash, so cache keys can ignore params. */
+export function pathnameOf(url: string): string {
+  const stripped = url.split('#')[0]!.split('?')[0]!
+  const schemeEnd = stripped.indexOf('://')
+  if (schemeEnd < 0) return stripped
+  const slash = stripped.indexOf('/', schemeEnd + 3)
+  return slash < 0 ? '/' : stripped.slice(slash)
+}
+
 export function buildConfig(
   method: HttpMethod,
   url: string,
@@ -53,6 +62,7 @@ export function buildConfig(
   return {
     method,
     url,
+    pathname: pathnameOf(url),
     body,
     headers: options?.headers ? { ...options.headers } : undefined,
     params: options?.params,

@@ -2,6 +2,7 @@
  * 场景：请求缓存
  *
  * 日常用 flyreq.get(url, { cache: 60_000 })。
+ * 只有成功响应会入库：HTTP 失败和 code !== 0 的业务错误都不缓存。
  * 自定义 CacheStore 仍可走 createCacheRequestor（DIP，不影响这段调用）。
  */
 import {
@@ -35,7 +36,14 @@ export async function runCache(): Promise<void> {
   await flyreq.get('/api/config', { cache: gated })
   note(`isValid=false 后再请求，网络=${mock.calls.filter(c => c.url === '/api/config').length}`)
 
-  heading('4. 注入自定义 CacheStore（高级）')
+  heading('4. 失败不入缓存（否则用户会被钉在一个错误上）')
+  const failing = bootMock({ label: 'cache-500', status: 500 })
+  await flyreq.get('/api/boom', { cache: 60_000, retry: false }).catch(() => undefined)
+  await flyreq.get('/api/boom', { cache: 60_000, retry: false }).catch(() => undefined)
+  note(`两次 500，网络=${failing.calls.length}（应为 2，缓存没有记住失败）`)
+  bootMock({ label: 'cache' })
+
+  heading('5. 注入自定义 CacheStore（高级）')
   const memory = createMemoryStore()
   const log: string[] = []
   const store: CacheStore = {

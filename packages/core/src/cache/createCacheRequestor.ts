@@ -1,4 +1,4 @@
-import type { EventfulRequestor, PlainResponse, RequestConfig, Requestor } from '../types'
+import type { EventfulRequestor, HttpResponse, PlainResponse, RequestConfig, Requestor } from '../types'
 import { createHttpResponse, wrapRequestor } from '../requestor'
 import { resolveBase } from '../inject'
 import { resolveCacheStore, type CacheStore, type CacheStoreKind } from './store'
@@ -13,6 +13,21 @@ export interface CacheRequestorOptions {
   store?: CacheStore
   storeKind?: CacheStoreKind
   base?: Requestor
+  /**
+   * Decide whether a response may be cached. Defaults to `response.ok`, so
+   * failures are never served from cache. Return false to skip storing.
+   */
+  shouldCache?: (config: RequestConfig, response: HttpResponse) => boolean | Promise<boolean>
+  /**
+   * Share one in-flight request between concurrent callers with the same key.
+   * This is what stops double-submits; disable only for load testing.
+   */
+  dedupeInFlight?: boolean
+  /**
+   * Registry of in-flight requests. Pass a shared map when callers build a new
+   * requestor per call, otherwise each instance dedupes only against itself.
+   */
+  inFlight?: Map<string, Promise<HttpResponse>>
 }
 
 function defaultKey(config: RequestConfig): string {
@@ -29,6 +44,9 @@ function normalizeOptions(options: CacheRequestorOptions = {}) {
     store: options.store,
     storeKind: options.storeKind,
     base: options.base,
+    shouldCache: options.shouldCache ?? ((_config, response) => response.ok),
+    dedupeInFlight: options.dedupeInFlight ?? true,
+    inFlight: options.inFlight,
   }
 }
 
@@ -36,24 +54,30 @@ export function createCacheRequestor(cacheOptions: CacheRequestorOptions = {}): 
   const options = normalizeOptions(cacheOptions)
   const store = options.store ?? resolveCacheStore(options.storeKind ?? options.persist)
   const base = resolveBase(options.base)
+  const inFlight = options.inFlight ?? new Map<string, Promise<HttpResponse>>()
 
-  const requestor = wrapRequestor(base, async (_config, next) => next())
+  const requestor = wrapRequestor(base, async (config, next) => {
+    if (!options.dedupeInFlight) return next()
+
+    const key = options.key(config)
+    const pending = inFlight.get(key)
+    if (pending) return pending
+
+    const promise = next()
+    inFlight.set(key, promise)
+    try {
+      return await promise
+    }
+    finally {
+      inFlight.delete(key)
+    }
+  })
 
   requestor.on('beforeRequest', async (config) => {
     const key = options.key(config)
-    const hasKey = await store.has(key)
-    if (!hasKey) return
+    if (!(await store.has(key))) return
 
-    let valid = true
-    if (options.isValid) {
-      valid = await options.isValid(key, config)
-    }
-    else if (options.duration != null) {
-      // duration is encoded in store meta via expireAt on set; has() already checks
-      valid = true
-    }
-
-    if (!valid) {
+    if (options.isValid && !(await options.isValid(key, config))) {
       await store.delete(key)
       return
     }
@@ -65,6 +89,7 @@ export function createCacheRequestor(cacheOptions: CacheRequestorOptions = {}): 
   })
 
   requestor.on('responseBody', async (config, resp) => {
+    if (!(await options.shouldCache(config, resp))) return
     const key = options.key(config)
     const meta =
       options.isValid == null && options.duration != null

@@ -39,6 +39,14 @@ await flyreq.get('/api/article', { cache: 60_000, retry: 3 })
 await flyreq.post('/api/pay', body, { idempotent: true })
 ```
 
+这三个选项的默认语义：
+
+| 选项 | 行为 |
+|------|------|
+| `retry` | 重试网络异常、5xx、429；4xx 不重试（`shouldRetryResponse: false` 可退回只重试异常） |
+| `cache` | 只缓存成功响应；HTTP 失败和 `code !== 0` 的业务错误都不入库 |
+| `idempotent` | 并发连点复用同一个请求；去重窗口默认 5 分钟（`duration` 可调） |
+
 全局默认重试：
 
 ```ts
@@ -119,6 +127,15 @@ await flyreq.get('/api/profile', {
 ```
 
 环境缺少对应 API 时，自动回退到内存仓库。
+
+缓存键默认是 `method:url:params`。想按路径缓存（忽略 query）可以用 `config.pathname`：
+
+```ts
+await flyreq.get('/api/search', {
+  params: { q },
+  cache: { duration: 60_000, key: (config) => config.pathname! },
+})
+```
 
 ## CLI 生成样板
 

@@ -16,6 +16,7 @@ export { injectRequestor, getRequestor, resetRequestor, resolveBase } from './in
 export {
   createHttpResponse,
   buildConfig,
+  pathnameOf,
   defineRequestor,
   wrapRequestor,
   createEventfulRequestor,
@@ -42,6 +43,7 @@ export {
 export { hashRequest } from './hash'
 export {
   createIdempotentRequestor,
+  DEFAULT_IDEMPOTENT_DURATION,
   type IdempotentRequestorOptions,
 } from './createIdempotentRequestor'
 export {

@@ -7,11 +7,22 @@ export interface RetryRequestorOptions {
   /** Delay between retries in ms (fixed or per-attempt) */
   delay?: number | ((attempt: number, error: unknown) => number)
   shouldRetry?: (error: unknown, attempt: number, config: RequestConfig) => boolean | Promise<boolean>
+  /**
+   * Retry responses the transport resolved rather than threw.
+   * Defaults to 5xx and 429, since axios / fetch do not reject on those.
+   */
+  shouldRetryResponse?:
+    | false
+    | ((response: HttpResponse, attempt: number, config: RequestConfig) => boolean | Promise<boolean>)
   base?: Requestor
 }
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isRetryableStatus(response: HttpResponse): boolean {
+  return response.status >= 500 || response.status === 429
 }
 
 export function createRetryRequestor(maxCount?: number): EventfulRequestor
@@ -25,28 +36,50 @@ export function createRetryRequestor(
       : maxCountOrOptions
   const maxCount = options.maxCount ?? 5
   const base = resolveBase(options.base)
+  const shouldRetryResponse =
+    options.shouldRetryResponse === false
+      ? undefined
+      : (options.shouldRetryResponse ?? ((response: HttpResponse) => isRetryableStatus(response)))
 
   return wrapRequestor(base, async (config, next) => {
     let lastError: unknown
+    let lastResponse: HttpResponse | undefined
+
     for (let attempt = 0; attempt <= maxCount; attempt++) {
+      if (attempt > 0) {
+        const delay =
+          typeof options.delay === 'function'
+            ? options.delay(attempt, lastError)
+            : (options.delay ?? 0)
+        if (delay > 0) await sleep(delay)
+      }
+
       try {
-        return await next()
+        const response = await next()
+        if (
+          attempt < maxCount
+          && shouldRetryResponse
+          && (await shouldRetryResponse(response, attempt + 1, config))
+        ) {
+          lastResponse = response
+          lastError = undefined
+          continue
+        }
+        return response
       }
       catch (error) {
         lastError = error
+        lastResponse = undefined
         if (attempt >= maxCount) break
         const should =
           options.shouldRetry
             ? await options.shouldRetry(error, attempt + 1, config)
             : true
         if (!should) break
-        const delay =
-          typeof options.delay === 'function'
-            ? options.delay(attempt + 1, error)
-            : (options.delay ?? 0)
-        if (delay > 0) await sleep(delay)
       }
     }
+
+    if (lastResponse) return lastResponse
     throw lastError
   })
 }

@@ -128,4 +128,65 @@ describe('flyreq client', () => {
     await flyreq.post('/api/pay', { orderId: 2 }, { idempotent: true })
     expect(calls).toHaveLength(2)
   })
+
+  it('blocks a double-click that fires both requests at once', async () => {
+    const { requestor, calls } = createMockRequestor(async (config) => {
+      await new Promise((r) => setTimeout(r, 20))
+      return createHttpResponse({
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        data: { code: 0, data: { url: config.url }, message: 'ok' },
+        url: config.url,
+      })
+    })
+    bootstrapRequestor(requestor)
+    await Promise.all([
+      flyreq.post('/api/pay', { orderId: 1 }, { idempotent: true }),
+      flyreq.post('/api/pay', { orderId: 1 }, { idempotent: true }),
+    ])
+    expect(calls).toHaveLength(1)
+  })
+
+  it('lets the user retry after a business error instead of caching it', async () => {
+    let n = 0
+    const { requestor } = createMockRequestor(async (config) => {
+      n++
+      return createHttpResponse({
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        data: n === 1
+          ? { code: 500, data: null, message: '余额不足' }
+          : { code: 0, data: { paid: true }, message: 'ok' },
+        url: config.url,
+      })
+    })
+    bootstrapRequestor(requestor)
+
+    await expect(
+      flyreq.post('/api/pay', { orderId: 1 }, { idempotent: true }),
+    ).rejects.toThrow('余额不足')
+
+    const second = await flyreq.post<{ paid: boolean }>('/api/pay', { orderId: 1 }, { idempotent: true })
+    expect(second.paid).toBe(true)
+  })
+
+  it('does not serve a cached 500', async () => {
+    const { requestor, calls } = createMockRequestor(async (config) =>
+      createHttpResponse({ status: 500, statusText: 'Boom', headers: {}, data: null, url: config.url }),
+    )
+    bootstrapRequestor(requestor)
+    await expect(flyreq.get('/boom', { cache: 60_000, retry: false })).rejects.toThrow('HTTP 500')
+    await expect(flyreq.get('/boom', { cache: 60_000, retry: false })).rejects.toThrow('HTTP 500')
+    expect(calls).toHaveLength(2)
+  })
+
+  it('exposes head and options', async () => {
+    const { requestor, calls } = createMockRequestor()
+    bootstrapRequestor(requestor)
+    await flyreq.head('/api/ping')
+    await flyreq.options('/api/ping')
+    expect(calls.map((c) => c.method)).toEqual(['HEAD', 'OPTIONS'])
+  })
 })

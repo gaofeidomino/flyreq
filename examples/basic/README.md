@@ -13,9 +13,9 @@ pnpm --filter @flyreq/example-basic start -- quick  # 日常用法
 | 日常用法 | `quick` | `setupFlyreq` + `flyreq.get/post` + 调用级 cache / idempotent |
 | DIP 接线 | `setup` | `setupFlyreq` / `bootstrapRequestor` / `setBackend` |
 | 业务协议 | `bus` | token、跳过鉴权、信封解包、`BusError` |
-| 重试 | `retry` | `{ retry: 3 }`、`shouldRetry` |
-| 缓存 | `cache` | `{ cache: 60_000 }`、自定义 key、`isValid`、注入 `CacheStore` |
-| 幂等 | `idempotent` | `{ idempotent: true }`、自定义幂等键 |
+| 重试 | `retry` | `{ retry: 3 }`、`shouldRetry`、5xx 重试 / 4xx 不重试 |
+| 缓存 | `cache` | `{ cache: 60_000 }`、自定义 key、`isValid`、失败不入缓存、注入 `CacheStore` |
+| 幂等 | `idempotent` | `{ idempotent: true }`、自定义幂等键、并发连点只发一次 |
 | 流控 | `flow` | 串行、并发上限 |
 | 自定义传输 | `adapter` | `defineRequestor` + `registerAdapter` |
 | 自定义存储 | `store` | 自己实现 `CacheStore`、`storeKind` |

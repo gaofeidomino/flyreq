@@ -14,6 +14,8 @@ export interface RequestConfig extends RequestOptions {
   url: string
   method: HttpMethod
   body?: unknown
+  /** `url` without its query string — handy as a cache key. */
+  pathname?: string
 }
 
 export interface PlainResponse {
