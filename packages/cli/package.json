@@ -2,23 +2,57 @@
   "name": "@flyreq/cli",
   "version": "0.1.0",
   "description": "FeiFly flyreq CLI — generate bus API templates from endpoints JSON",
+  "keywords": [
+    "flyreq",
+    "cli",
+    "codegen"
+  ],
+  "homepage": "https://github.com/gaofeidomino/flyreq#readme",
+  "bugs": {
+    "url": "https://github.com/gaofeidomino/flyreq/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gaofeidomino/flyreq.git",
+    "directory": "packages/cli"
+  },
+  "license": "MIT",
+  "author": "飞 (Fei)",
   "type": "module",
+  "sideEffects": false,
   "bin": {
     "flyreq": "./dist/cli.js"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "cli": [
+        "./dist/cli.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./cli": {
-      "types": "./dist/cli.d.ts",
-      "import": "./dist/cli.js",
-      "require": "./dist/cli.cjs"
+      "import": {
+        "types": "./dist/cli.d.ts",
+        "default": "./dist/cli.js"
+      },
+      "require": {
+        "types": "./dist/cli.d.cts",
+        "default": "./dist/cli.cjs"
+      }
     },
     "./package.json": "./package.json"
   },
@@ -26,17 +60,14 @@
     "dist",
     "src"
   ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsdown && node ../../scripts/link-dts.mjs",
-    "dev": "tsdown --watch"
+    "dev": "tsdown --watch",
+    "prepublishOnly": "pnpm build"
   },
-  "keywords": [
-    "flyreq",
-    "cli",
-    "codegen"
-  ],
-  "author": "飞 (Fei)",
-  "license": "MIT",
   "devDependencies": {
     "@types/node": "catalog:",
     "tsdown": "catalog:",

@@ -51,10 +51,10 @@ importers:
       '@flyreq/core':
         specifier: workspace:*
         version: link:../core
+    devDependencies:
       axios:
         specifier: 'catalog:'
         version: 1.19.0
-    devDependencies:
       tsdown:
         specifier: 'catalog:'
         version: 0.12.9(typescript@5.9.3)
