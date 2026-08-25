@@ -49,7 +49,7 @@ beforeEach(() => {
 
 describe('adapters', () => {
   it('lists builtin backends after setup', () => {
-    setupFlyreq({ ignoreConfigFile: true, backend: 'fetch' })
+    setupFlyreq({ backend: 'fetch' })
     expect(listBackends()).toEqual(expect.arrayContaining(['axios', 'fetch', 'xhr']))
     expect(getBackend()).toBe('fetch')
   })
@@ -80,7 +80,6 @@ describe('adapters', () => {
       },
     }))
     setupFlyreq({
-      ignoreConfigFile: true,
       backend: 'echo',
       token: 'abc',
     })

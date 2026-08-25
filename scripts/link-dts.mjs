@@ -20,13 +20,21 @@ async function link(pattern, stable) {
   console.log(`[link-dts] ${match} -> ${stable}`)
 }
 
-await link(/^index-[^./]+\.d\.ts$/, 'index.d.ts')
-await link(/^index-[^./]+\.d\.cts$/, 'index.d.cts')
+function hasEntry(name) {
+  return files.some((f) => new RegExp(`^${name}-[^./]+\\.d\\.ts$`).test(f))
+}
 
-// optional cli entry
-if (files.some((f) => /^cli-[^./]+\.d\.ts$/.test(f))) {
-  await link(/^cli-[^./]+\.d\.ts$/, 'cli.d.ts')
-  await link(/^cli-[^./]+\.d\.cts$/, 'cli.d.cts')
+async function linkEntry(name) {
+  await link(new RegExp(`^${name}-[^./]+\\.d\\.ts$`), `${name}.d.ts`)
+  await link(new RegExp(`^${name}-[^./]+\\.d\\.cts$`), `${name}.d.cts`)
+}
+
+await linkEntry('index')
+
+/** Optional secondary entries, each exposed as a subpath export. */
+const subpathEntries = ['node', 'cli'].filter(hasEntry)
+for (const name of subpathEntries) {
+  await linkEntry(name)
 }
 
 const pkgPath = join(cwd, 'package.json')
@@ -40,13 +48,15 @@ pkg.exports['.'] = {
   import: './dist/index.js',
   require: './dist/index.cjs',
 }
+for (const name of subpathEntries) {
+  pkg.exports[`./${name}`] = {
+    types: `./dist/${name}.d.ts`,
+    import: `./dist/${name}.js`,
+    require: `./dist/${name}.cjs`,
+  }
+}
 if (pkg.bin?.flyreq) {
   pkg.bin.flyreq = './dist/cli.js'
-  pkg.exports['./cli'] = {
-    types: './dist/cli.d.ts',
-    import: './dist/cli.js',
-    require: './dist/cli.cjs',
-  }
 }
 pkg.exports['./package.json'] = './package.json'
 await writeFile(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`)

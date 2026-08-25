@@ -22,7 +22,6 @@ export async function runQuick(): Promise<void> {
     baseURL: 'https://api.example.com',
     backend: 'mock',
     token: 'demo-token',
-    ignoreConfigFile: true,
   })
 
   heading('之后只调 flyreq.get / post，不必再传 Requestor')

@@ -16,6 +16,11 @@
       "require": "./dist/index.cjs"
     },
     "./package.json": "./package.json",
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js",
+      "require": "./dist/node.cjs"
+    },
     "./cli": {
       "types": "./dist/cli.d.ts",
       "import": "./dist/cli.js",

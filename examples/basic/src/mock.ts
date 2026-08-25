@@ -106,7 +106,6 @@ export function bootMock(options: MockOptions = {}): MockTransport {
     baseURL: 'https://api.example.com',
     backend: 'mock',
     token: 'demo-token',
-    ignoreConfigFile: true,
   })
   return mock
 }

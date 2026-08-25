@@ -44,7 +44,6 @@ export async function runCustomAdapter(): Promise<void> {
   setupFlyreq({
     backend: 'ofetch',
     baseURL: 'https://api.example.com',
-    ignoreConfigFile: true,
   })
   note(`已注册: ${listBackends().join(', ')}`)
   const a = await flyreq.get<{ via: string }>('/api/custom')
