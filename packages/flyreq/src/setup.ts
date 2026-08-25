@@ -11,8 +11,11 @@ import {
 } from './adapters'
 
 export interface SetupFlyreqOptions extends BusConfig {
-  /** Transport adapter name; default `axios` */
-  backend?: BackendName
+  /**
+   * Transport: a registered adapter name or a Requestor instance.
+   * Defaults to `fetch`; axios comes from the `flyreq/axios` subpath.
+   */
+  backend?: BackendName | Requestor
   /** Options passed to the adapter factory (e.g. axios CreateAxiosDefaults) */
   adapterOptions?: unknown
   /** Default retry policy for `flyreq.get/post/...` (override per call). */
@@ -70,7 +73,7 @@ export function setupFlyreq(options: SetupFlyreqOptions = {}): Requestor {
   configureBus(busConfig)
   configureFlyreq({ retry })
 
-  return setBackend(backend ?? getBackend() ?? 'axios', adapterOptions)
+  return setBackend(backend ?? getBackend() ?? 'fetch', adapterOptions)
 }
 
 export { registerAdapter, listBackends, getBackend, createBackend }

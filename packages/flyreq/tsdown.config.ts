@@ -3,6 +3,7 @@ import { defineConfig } from 'tsdown'
 export default defineConfig({
   entry: {
     index: './src/index.ts',
+    axios: './src/axios.ts',
     node: './src/node.ts',
     cli: './src/cli.ts',
   },

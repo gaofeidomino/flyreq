@@ -32,9 +32,21 @@ async function linkEntry(name) {
 await linkEntry('index')
 
 /** Optional secondary entries, each exposed as a subpath export. */
-const subpathEntries = ['node', 'cli'].filter(hasEntry)
+const subpathEntries = ['axios', 'node', 'cli'].filter(hasEntry)
 for (const name of subpathEntries) {
   await linkEntry(name)
+}
+
+/**
+ * Types must be nested per condition. A single top-level `types` pointing at
+ * the ESM .d.ts makes `require("pkg")` resolve ESM declarations against a CJS
+ * implementation — what are-the-types-wrong flags as "masquerading as ESM".
+ */
+function conditionalExport(name) {
+  return {
+    import: { types: `./dist/${name}.d.ts`, default: `./dist/${name}.js` },
+    require: { types: `./dist/${name}.d.cts`, default: `./dist/${name}.cjs` },
+  }
 }
 
 const pkgPath = join(cwd, 'package.json')
@@ -43,16 +55,22 @@ pkg.types = './dist/index.d.ts'
 pkg.module = './dist/index.js'
 pkg.main = './dist/index.cjs'
 pkg.exports = pkg.exports ?? {}
-pkg.exports['.'] = {
-  types: './dist/index.d.ts',
-  import: './dist/index.js',
-  require: './dist/index.cjs',
-}
+pkg.exports['.'] = conditionalExport('index')
 for (const name of subpathEntries) {
-  pkg.exports[`./${name}`] = {
-    types: `./dist/${name}.d.ts`,
-    import: `./dist/${name}.js`,
-    require: `./dist/${name}.cjs`,
+  pkg.exports[`./${name}`] = conditionalExport(name)
+}
+
+/**
+ * TypeScript's legacy `moduleResolution: "node"` ignores `exports`, so it
+ * cannot find declarations for a subpath like `flyreq/axios`. Bundlers still
+ * resolve the runtime fine, so mapping the types is enough to unbreak those
+ * projects. Derived from the same entry list to stay in step with `exports`.
+ */
+if (subpathEntries.length > 0) {
+  pkg.typesVersions = {
+    '*': Object.fromEntries(
+      subpathEntries.map((name) => [name, [`./dist/${name}.d.ts`]]),
+    ),
   }
 }
 if (pkg.bin?.flyreq) {

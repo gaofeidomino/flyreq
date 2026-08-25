@@ -12,7 +12,16 @@
 pnpm add flyreq
 ```
 
-即可使用（默认传输：**axios**）。无需再分别安装 `@flyreq/core` / `@flyreq/axios` / `@flyreq/bus`。
+即可使用（默认传输：**fetch**）。无需再分别安装 `@flyreq/core` / `@flyreq/bus`。
+
+想用 axios 就多引一条子路径 —— 它不在主入口里，这样不用 axios 的项目产物里就不会有它（约 48 KB）：
+
+```ts
+import { setupFlyreq } from 'flyreq'
+import { createAxiosRequestor } from 'flyreq/axios'
+
+setupFlyreq({ baseURL: 'https://api.example.com', backend: createAxiosRequestor() })
+```
 
 分场景可运行示例见 [`examples/basic`](examples/basic)。
 
@@ -76,8 +85,17 @@ await publishArticle(article, { retry: 3 }) // overrides 里叠选项，不要�
 import { setupFlyreq, setBackend } from 'flyreq'
 
 setupFlyreq({ baseURL: 'https://api.example.com', backend: 'fetch' })
-setBackend('axios')
 setBackend('xhr')
+```
+
+`fetch` 和 `xhr` 是内置的。按名字选 `axios`（包括 `flyreq use axios` 写进配置文件这条路）
+需要先注册，否则会拿到一条指明该怎么做的报错：
+
+```ts
+import { registerAxiosAdapter } from 'flyreq/axios'
+
+registerAxiosAdapter()
+setBackend('axios')
 ```
 
 ### 切换传输层（CLI）
@@ -176,7 +194,7 @@ flyreq gen -o ./src/generated
 |----|------|
 | `flyreq` | **推荐** 伞包（单包安装） |
 | `@flyreq/core` | Requestor / CacheStore 接口、injectRequestor、缓存 / 幂等 / 重试 / 串行 / 并发 |
-| `@flyreq/axios` | axios 实现 |
+| `@flyreq/axios` | axios 实现（`axios` 是可选 peer 依赖） |
 | `@flyreq/fetch` | fetch 实现 |
 | `@flyreq/xhr` | XMLHttpRequest 实现 |
 | `@flyreq/bus` | 协议层 + `flyreq.get/post` 客户端；`bootstrapRequestor` 注入 |
@@ -186,9 +204,9 @@ DIP 手动接线（一般用不到）：
 
 ```ts
 import { bootstrapRequestor, flyreq } from 'flyreq'
-import { requestor } from '@flyreq/axios'
+import { axiosRequestor } from 'flyreq/axios'
 
-bootstrapRequestor(requestor, { baseURL: 'https://api.example.com', token: 'jwt' })
+bootstrapRequestor(axiosRequestor, { baseURL: 'https://api.example.com', token: 'jwt' })
 await flyreq.get('/api/user/me')
 ```
 

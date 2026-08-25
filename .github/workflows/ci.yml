@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Lowest supported version plus current LTS, so an accidental reach
+        # past the engines.node floor fails here instead of in a consumer.
+        node: [18, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm -w build
+
+      - run: pnpm -w test
+
+      - name: Manifest metadata is in sync
+        run: |
+          node scripts/sync-manifests.mjs
+          git diff --exit-code -- '*package.json' \
+            || (echo '::error::package.json drifted; run node scripts/sync-manifests.mjs' && exit 1)
+
+  publish-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm -w build
+
+      - name: publint
+        run: |
+          for pkg in core bus axios fetch xhr cli flyreq; do
+            echo "--- $pkg"
+            npx --yes publint@latest "./packages/$pkg"
+          done
+
+      - name: are-the-types-wrong
+        run: |
+          for pkg in core bus axios fetch xhr cli flyreq; do
+            echo "--- $pkg"
+            (cd "packages/$pkg" && npx --yes @arethetypeswrong/cli@latest --pack .)
+          done

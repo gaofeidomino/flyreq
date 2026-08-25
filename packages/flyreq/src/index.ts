@@ -82,7 +82,7 @@ export {
   type BackendName,
 } from './setup'
 
-// Low-level creators (advanced)
-export { createAxiosRequestor, requestor as axiosRequestor } from '@flyreq/axios'
+// Low-level creators (advanced).
+// axios is deliberately absent — import it from "flyreq/axios".
 export { createFetchRequestor, requestor as fetchRequestor } from '@flyreq/fetch'
 export { createXhrRequestor, requestor as xhrRequestor } from '@flyreq/xhr'
