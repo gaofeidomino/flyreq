@@ -12,6 +12,7 @@ import {
   type RequestConfig,
   type Requestor,
 } from '../src/index'
+import { registerAxiosAdapter } from '../src/axios'
 
 function createEcho(label: string): Requestor {
   return {
@@ -48,9 +49,15 @@ beforeEach(() => {
 })
 
 describe('adapters', () => {
-  it('lists builtin backends after setup', () => {
+  it('builds in only the dependency-free transports', () => {
     setupFlyreq({ backend: 'fetch' })
-    expect(listBackends()).toEqual(expect.arrayContaining(['axios', 'fetch', 'xhr']))
+    expect(listBackends()).toEqual(expect.arrayContaining(['fetch', 'xhr']))
+    expect(listBackends()).not.toContain('axios')
+    expect(getBackend()).toBe('fetch')
+  })
+
+  it('defaults to fetch so axios stays out of the bundle', () => {
+    setupFlyreq({ baseURL: 'https://x.test' })
     expect(getBackend()).toBe('fetch')
   })
 
@@ -86,5 +93,23 @@ describe('adapters', () => {
     const data = await flyreq.get<{ label: string }>('/me')
     expect(data.label).toBe('tok')
     expect(calls[0]?.headers?.Authorization).toBe('Bearer abc')
+  })
+})
+
+/**
+ * The adapter registry is process-wide with no reset, so registering axios is
+ * one-way. Keep this block last: earlier tests assert axios is absent.
+ */
+describe('axios opt-in (mutates the shared registry)', () => {
+  it('names the fix when axios is selected but not registered', () => {
+    expect(listBackends()).not.toContain('axios')
+    expect(() => setBackend('axios')).toThrowError(/flyreq\/axios/)
+  })
+
+  it('registerAxiosAdapter makes the name resolvable', () => {
+    registerAxiosAdapter()
+    expect(listBackends()).toContain('axios')
+    setupFlyreq({ backend: 'axios' })
+    expect(getBackend()).toBe('axios')
   })
 })

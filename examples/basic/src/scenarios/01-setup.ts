@@ -42,5 +42,5 @@ export async function runSetup(): Promise<void> {
   setBackend(mockA.requestor)
   await flyreq.get('/api/switch')
   note(`换回 A 后: setup-calls=${mockA.calls.length} bootstrap-calls=${mockB.calls.length}`)
-  note('内置还可 setBackend("axios" | "fetch" | "xhr")，或 flyreq use fetch')
+  note('内置还可 setBackend("fetch" | "xhr")；axios 需先 registerAxiosAdapter()')
 }

@@ -75,8 +75,8 @@ export function attachBus(base: Requestor): Requestor {
  *
  * ```ts
  * import { bootstrapRequestor } from '@flyreq/bus'
- * import { requestor } from '@flyreq/axios'
- * bootstrapRequestor(requestor)
+ * import { createFetchRequestor } from '@flyreq/fetch'
+ * bootstrapRequestor(createFetchRequestor())
  * ```
  */
 export function bootstrapRequestor(requestor: Requestor, config?: BusConfig): Requestor {
