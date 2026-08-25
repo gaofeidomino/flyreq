@@ -36,7 +36,6 @@
     "codegen"
   ],
   "author": "飞 (Fei)",
-  "license": "MIT",
   "devDependencies": {
     "@types/node": "catalog:",
     "tsdown": "catalog:",

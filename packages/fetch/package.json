@@ -27,7 +27,6 @@
     "fetch"
   ],
   "author": "飞 (Fei)",
-  "license": "MIT",
   "dependencies": {
     "@flyreq/core": "workspace:*"
   },

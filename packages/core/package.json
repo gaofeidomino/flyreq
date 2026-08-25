@@ -29,7 +29,6 @@
     "http"
   ],
   "author": "飞 (Fei)",
-  "license": "MIT",
   "devDependencies": {
     "tsdown": "catalog:",
     "typescript": "catalog:"

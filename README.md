@@ -187,7 +187,3 @@ flyreq (request-lib)
   └── request-imp    axios / fetch / xhr / ...
                      实现 core 中的接口，core 不依赖任何传输库
 ```
-
-## License
-
-MIT

@@ -19,7 +19,6 @@
     "fetch"
   ],
   "author": "飞 (Fei)",
-  "license": "MIT",
   "packageManager": "pnpm@10.22.0",
   "devDependencies": {
     "typescript": "catalog:",
