@@ -1,16 +1,14 @@
 # Releases run off a `v*` tag. Needs an NPM_TOKEN repo secret with publish
 # rights on `flyreq` and the `@flyreq` scope.
 #
-# Not using OIDC trusted publishing, for two independent reasons:
-#   1. npm attaches a trusted publisher to an *existing* package, so it cannot
-#      perform a package's first publish -- and none of these are on npm yet.
-#   2. pnpm 10 never attempts the OIDC exchange (its bundle contains no
-#      reference to ACTIONS_ID_TOKEN_REQUEST_URL) and fails with a misleading
-#      ENEEDAUTH. Native support landed in pnpm 11.
+# Not using OIDC trusted publishing yet: npm attaches a trusted publisher to an
+# *existing* package, so it cannot perform a package's first publish -- and none
+# of these are on npm yet.
 #
-# So the path to tokenless releases is: publish once with the token, upgrade to
-# pnpm 11, register a trusted publisher for each of the seven packages, then
-# drop NODE_AUTH_TOKEN. Provenance below works either way.
+# So the path to tokenless releases is: publish once with the token, register a
+# trusted publisher for each of the seven packages, then drop NODE_AUTH_TOKEN.
+# The pnpm pinned in packageManager already speaks OIDC (pnpm 10 did not, and
+# failed the exchange with a misleading ENEEDAUTH). Provenance works either way.
 name: Publish
 
 on:
