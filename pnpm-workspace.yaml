@@ -2,6 +2,12 @@ packages:
   - packages/*
   - examples/*
 
+# pnpm 11 fails the install on an undeclared build script rather than warning.
+# esbuild arrives transitively under vitest and resolves its binary from the
+# @esbuild/<platform> optional dep, so its postinstall is not needed.
+allowBuilds:
+  esbuild: false
+
 catalog:
   typescript: ^5.8.3
   tsdown: ^0.12.9

@@ -1,0 +1,77 @@
+# Releases run off a `v*` tag. Needs an NPM_TOKEN repo secret with publish
+# rights on `flyreq` and the `@flyreq` scope.
+#
+# Not using OIDC trusted publishing yet: npm attaches a trusted publisher to an
+# *existing* package, so it cannot perform a package's first publish -- and none
+# of these are on npm yet.
+#
+# So the path to tokenless releases is: publish once with the token, register a
+# trusted publisher for each of the seven packages, then drop NODE_AUTH_TOKEN.
+# The pnpm pinned in packageManager already speaks OIDC (pnpm 10 did not, and
+# failed the exchange with a misleading ENEEDAUTH). Provenance works either way.
+name: Publish
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Pack and validate without publishing'
+        type: boolean
+        default: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # provenance attestation
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          # Required so npm writes an .npmrc that reads NODE_AUTH_TOKEN.
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      # The packages pin each other with exact versions, so a tag that
+      # disagrees with the manifests would publish a self-inconsistent set.
+      - name: Tag matches package versions
+        if: startsWith(github.ref, 'refs/tags/')
+        run: node scripts/check-release-version.mjs
+
+      - run: pnpm -w build
+
+      - run: pnpm -w test
+
+      - name: publint
+        run: |
+          for pkg in core bus axios fetch xhr cli flyreq; do
+            echo "--- $pkg"
+            npx --yes publint@latest "./packages/$pkg"
+          done
+
+      - name: are-the-types-wrong
+        run: |
+          for pkg in core bus axios fetch xhr cli flyreq; do
+            echo "--- $pkg"
+            (cd "packages/$pkg" && npx --yes @arethetypeswrong/cli@latest --pack .)
+          done
+
+      - name: Publish (dry run)
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        run: pnpm -r publish --dry-run --no-git-checks --access public
+
+      # `pnpm -r publish` skips versions already on the registry, so a rerun
+      # after a partial failure finishes the set instead of erroring out.
+      - name: Publish
+        if: github.event_name == 'push' || inputs.dry_run == false
+        run: pnpm -r publish --no-git-checks --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -20,7 +20,7 @@
   ],
   "author": "飞 (Fei)",
   "license": "MIT",
-  "packageManager": "pnpm@10.22.0",
+  "packageManager": "pnpm@11.24.0",
   "devDependencies": {
     "typescript": "catalog:",
     "vitest": "catalog:"
