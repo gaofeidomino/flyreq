@@ -22,14 +22,20 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm -w build
 
-      - run: pnpm -w test
+      # pnpm 11 requires Node >=22.13. Install/build with the toolchain runtime,
+      # then execute the compiled packages/tests on the supported runtime floor.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - run: node node_modules/vitest/vitest.mjs run
 
       - name: Manifest metadata is in sync
         run: |
