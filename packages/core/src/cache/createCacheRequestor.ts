@@ -1,6 +1,7 @@
 import type { EventfulRequestor, HttpResponse, PlainResponse, RequestConfig, Requestor } from '../types'
 import { createHttpResponse, wrapRequestor } from '../requestor'
 import { resolveBase } from '../inject'
+import { hashRequest } from '../hash'
 import { resolveCacheStore, type CacheStore, type CacheStoreKind } from './store'
 
 export interface CacheRequestorOptions {
@@ -31,8 +32,7 @@ export interface CacheRequestorOptions {
 }
 
 function defaultKey(config: RequestConfig): string {
-  const params = config.params ? JSON.stringify(config.params) : ''
-  return `${config.method}:${config.url}:${params}`
+  return hashRequest(config)
 }
 
 function normalizeOptions(options: CacheRequestorOptions = {}) {
@@ -56,21 +56,25 @@ export function createCacheRequestor(cacheOptions: CacheRequestorOptions = {}): 
   const base = resolveBase(options.base)
   const inFlight = options.inFlight ?? new Map<string, Promise<HttpResponse>>()
 
-  const requestor = wrapRequestor(base, async (config, next) => {
-    if (!options.dedupeInFlight) return next()
+  const sendAndCache = async (config: RequestConfig, next: () => Promise<HttpResponse>): Promise<HttpResponse> => {
+    const resp = await next()
+    if (await options.shouldCache(config, resp)) {
+      const meta = options.isValid == null && options.duration != null
+        ? { expireAt: Date.now() + options.duration } : undefined
+      await store.set(options.key(config), resp.toPlain(), meta)
+    }
+    return resp
+  }
 
+  const requestor = wrapRequestor(base, async (config, next) => {
+    if (!options.dedupeInFlight) return sendAndCache(config, next)
     const key = options.key(config)
     const pending = inFlight.get(key)
     if (pending) return pending
-
-    const promise = next()
+    const promise = sendAndCache(config, next)
     inFlight.set(key, promise)
-    try {
-      return await promise
-    }
-    finally {
-      inFlight.delete(key)
-    }
+    try { return await promise }
+    finally { if (inFlight.get(key) === promise) inFlight.delete(key) }
   })
 
   requestor.on('beforeRequest', async (config) => {
@@ -86,16 +90,6 @@ export function createCacheRequestor(cacheOptions: CacheRequestorOptions = {}): 
     if (cached) {
       return createHttpResponse(cached)
     }
-  })
-
-  requestor.on('responseBody', async (config, resp) => {
-    if (!(await options.shouldCache(config, resp))) return
-    const key = options.key(config)
-    const meta =
-      options.isValid == null && options.duration != null
-        ? { expireAt: Date.now() + options.duration }
-        : undefined
-    await store.set(key, resp.toPlain(), meta)
   })
 
   return requestor

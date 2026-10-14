@@ -23,10 +23,6 @@ function headersToRecord(headers: Headers): Record<string, string> {
 }
 
 async function parseBody(response: Response): Promise<unknown> {
-  const contentType = response.headers.get('content-type') ?? ''
-  if (contentType.includes('application/json')) {
-    return response.json()
-  }
   const text = await response.text()
   if (!text) return null
   try {
@@ -77,10 +73,15 @@ export function createFetchRequestor(options: FetchRequestorOptions = {}): Reque
     }
 
     let timer: ReturnType<typeof setTimeout> | undefined
-    if (config.timeout != null && config.timeout > 0 && !config.signal) {
+    let removeAbort = () => {}
+    if (config.timeout != null && config.timeout > 0) {
       const controller = new AbortController()
+      const abort = () => controller.abort(config.signal?.reason)
+      if (config.signal?.aborted) abort()
+      else config.signal?.addEventListener('abort', abort, { once: true })
+      removeAbort = () => config.signal?.removeEventListener('abort', abort)
       init.signal = controller.signal
-      timer = setTimeout(() => controller.abort(), config.timeout)
+      timer = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), config.timeout)
     }
 
     try {
@@ -96,6 +97,7 @@ export function createFetchRequestor(options: FetchRequestorOptions = {}): Reque
     }
     finally {
       if (timer) clearTimeout(timer)
+      removeAbort()
     }
   }
 

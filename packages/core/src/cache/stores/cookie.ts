@@ -53,11 +53,13 @@ function parseEntry(raw: string | undefined): CacheEntry | undefined {
 
 /** Cookie backend. Falls back to memory when `document` is missing. */
 export function createCookieStore(): CacheStore {
-  const doc = getDocument()
-  if (!doc) {
+  const candidate = getDocument()
+  if (!candidate) {
     warnUnavailable('Cookie')
     return createMemoryStore()
   }
+
+  const doc = candidate
 
   function readEntry(key: string): CacheEntry | undefined {
     const raw = readCookie(doc, cookieName(key))

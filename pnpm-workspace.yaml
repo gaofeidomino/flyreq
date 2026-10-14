@@ -14,3 +14,7 @@ catalog:
   vitest: ^3.2.4
   axios: ^1.11.0
   '@types/node': ^22.15.21
+
+# Vitest supports Node 18; its optional Vite 7 resolution does not.
+overrides:
+  vite: ^6.0.0

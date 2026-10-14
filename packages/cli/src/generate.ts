@@ -28,8 +28,8 @@ function pathTemplate(path: string, names: string[]): string {
   if (!names.length) return `'${path}'`
   let out = path
   for (const name of names) {
-    out = out.replaceAll(`{${name}}`, `\${${name}}`)
-    out = out.replaceAll(`:${name}`, `\${${name}}`)
+    out = out.split(`{${name}}`).join(`\${encodeURIComponent(${name})}`)
+    out = out.split(`:${name}`).join(`\${encodeURIComponent(${name})}`)
   }
   return `\`${out}\``
 }
@@ -67,7 +67,9 @@ function genFunction(name: string, ep: EndpointDef): string {
       ['params: { page, size }', fixed].filter(Boolean).join(', '),
       'options',
     )
-    call = `flyreq.${http}(${url}, ${opts})`
+    call = isBodyMethod
+      ? `flyreq.${http}(${url}, undefined, ${opts})`
+      : `flyreq.${http}(${url}, ${opts})`
   }
   else if (isBodyMethod) {
     const head = [pathSig, 'data?: unknown', 'options?: FlyreqCallOptions'].filter(Boolean).join(', ')

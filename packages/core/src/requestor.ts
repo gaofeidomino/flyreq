@@ -22,9 +22,6 @@ export function createHttpResponse(plain: PlainResponse): HttpResponse {
     data,
     ok: plain.status >= 200 && plain.status < 300,
     async json<T = unknown>() {
-      if (typeof data === 'string') {
-        return JSON.parse(data) as T
-      }
       return data as T
     },
     async text() {
@@ -111,21 +108,22 @@ export function wrapRequestor(base: Requestor, middleware: Middleware): Eventful
   const errorHandlers: ErrorHandler[] = []
 
   const request = async (config: RequestConfig): Promise<HttpResponse> => {
-    let current = { ...config, headers: config.headers ? { ...config.headers } : undefined }
-
-    for (const handler of beforeHandlers) {
-      const result = await handler(current)
-      if (result && typeof result === 'object' && 'status' in result && 'toPlain' in result) {
-        return result as HttpResponse
-      }
-      if (result && typeof result === 'object' && 'url' in result && 'method' in result) {
-        current = result as RequestConfig
-      }
-    }
-
-    const next = () => base.request(current)
+    let current: RequestConfig = { ...config, headers: config.headers ? { ...config.headers } : undefined }
 
     try {
+      current.signal?.throwIfAborted()
+      for (const handler of beforeHandlers) {
+        const result = await handler(current)
+        if (result && typeof result === 'object' && 'status' in result && 'toPlain' in result) {
+          return result as HttpResponse
+        }
+        if (result && typeof result === 'object' && 'url' in result && 'method' in result) {
+          current = result as RequestConfig
+        }
+      }
+
+      const next = () => base.request(current)
+
       let response = await middleware(current, next)
       for (const handler of responseHandlers) {
         const result = await handler(current, response)

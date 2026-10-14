@@ -17,11 +17,13 @@ function getLocalStorage(): Storage | undefined {
 
 /** Web Storage (localStorage) backend. */
 export function createStorageStore(): CacheStore {
-  const storage = getLocalStorage()
-  if (!storage) {
+  const candidate = getLocalStorage()
+  if (!candidate) {
     warnUnavailable('localStorage')
     return createMemoryStore()
   }
+
+  const storage = candidate
 
   function readEntry(key: string): CacheEntry | undefined {
     const raw = storage.getItem(STORAGE_PREFIX + key)
