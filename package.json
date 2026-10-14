@@ -2,13 +2,16 @@
   "name": "flyreq",
   "version": "0.1.0",
   "private": true,
-  "description": "FeiFly / flyreq — layered frontend request library",
+  "description": "FeiFly / flyreq \u2014 layered frontend request library",
   "scripts": {
     "build": "pnpm -r --filter=./packages/* run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "pnpm -r --filter=./packages/* --parallel run build --watch",
-    "gen:example": "pnpm --filter flyreq exec node ./dist/cli.js gen ../../examples/basic/api.json -o ../../examples/basic/generated"
+    "gen:example": "pnpm --filter flyreq exec node ./dist/cli.js gen ../../examples/basic/api.json -o ../../examples/basic/generated",
+    "test:coverage": "vitest run --coverage",
+    "test:scenarios": "node examples/basic/review/scenarios.mjs",
+    "typecheck": "node scripts/typecheck.mjs"
   },
   "keywords": [
     "flyreq",
@@ -18,10 +21,13 @@
     "axios",
     "fetch"
   ],
-  "author": "飞 (Fei)",
+  "author": "\u98de (Fei)",
   "license": "MIT",
   "packageManager": "pnpm@11.24.0",
   "devDependencies": {
+    "@vitest/coverage-v8": "3.2.7",
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^26.1.0",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

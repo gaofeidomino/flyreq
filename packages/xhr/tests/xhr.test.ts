@@ -56,3 +56,18 @@ describe('createXhrRequestor', () => {
     expect(resp.ok).toBe(true)
   })
 })
+
+describe('XHR error and cancellation paths',()=>{
+ it.each(['error','timeout'])('rejects %s',async event=>{
+  class FailingXHR extends MockXHR { override send(): void { queueMicrotask(()=>event==='error'?this.onerror?.():this.ontimeout?.()) } }
+  const req=createXhrRequestor({XMLHttpRequest:FailingXHR as unknown as typeof XMLHttpRequest})
+  await expect(req.get('/')).rejects.toThrow(event==='error'?'network':'timeout')
+ })
+ it.each([true,false])('supports pre-aborted=%s signals',async pre=>{
+  class WaitingXHR extends MockXHR { override send(): void {} }
+  const controller=new AbortController();if(pre)controller.abort()
+  const req=createXhrRequestor({XMLHttpRequest:WaitingXHR as unknown as typeof XMLHttpRequest})
+  const result=req.get('/',{signal:controller.signal});if(!pre)controller.abort()
+  await expect(result).rejects.toMatchObject({name:'AbortError'})
+ })
+})

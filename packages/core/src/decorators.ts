@@ -17,8 +17,13 @@ export interface RetryRequestorOptions {
   base?: Requestor
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) { reject(signal.reason); return }
+    const abort = () => { clearTimeout(timer); reject(signal?.reason) }
+    const timer = setTimeout(() => { signal?.removeEventListener('abort', abort); resolve() }, ms)
+    signal?.addEventListener('abort', abort, { once: true })
+  })
 }
 
 function isRetryableStatus(response: HttpResponse): boolean {
@@ -35,6 +40,7 @@ export function createRetryRequestor(
       ? { maxCount: maxCountOrOptions }
       : maxCountOrOptions
   const maxCount = options.maxCount ?? 5
+  if (!Number.isInteger(maxCount) || maxCount < 0) throw new RangeError('maxCount must be a nonnegative integer')
   const base = resolveBase(options.base)
   const shouldRetryResponse =
     options.shouldRetryResponse === false
@@ -46,12 +52,13 @@ export function createRetryRequestor(
     let lastResponse: HttpResponse | undefined
 
     for (let attempt = 0; attempt <= maxCount; attempt++) {
+      config.signal?.throwIfAborted()
       if (attempt > 0) {
         const delay =
           typeof options.delay === 'function'
             ? options.delay(attempt, lastError)
             : (options.delay ?? 0)
-        if (delay > 0) await sleep(delay)
+        if (delay > 0) await sleep(delay, config.signal)
       }
 
       try {
@@ -68,6 +75,7 @@ export function createRetryRequestor(
         return response
       }
       catch (error) {
+        if (config.signal?.aborted || (error instanceof Error && error.name === 'AbortError')) throw error
         lastError = error
         lastResponse = undefined
         if (attempt >= maxCount) break
@@ -98,7 +106,8 @@ export function createParallelRequestor(
     typeof maxCountOrOptions === 'number'
       ? { maxCount: maxCountOrOptions }
       : maxCountOrOptions
-  const maxCount = Math.max(1, options.maxCount ?? 4)
+  const maxCount = options.maxCount ?? 4
+  if (!Number.isInteger(maxCount) || maxCount < 1) throw new RangeError('maxCount must be a positive integer')
   const base = resolveBase(options.base)
   let active = 0
   const queue: Array<() => void> = []
@@ -122,9 +131,10 @@ export function createParallelRequestor(
     if (next) next()
   }
 
-  return wrapRequestor(base, async (_config, next) => {
+  return wrapRequestor(base, async (config, next) => {
     await acquire()
     try {
+      config.signal?.throwIfAborted()
       return await next()
     }
     finally {
@@ -141,8 +151,8 @@ export function createSerialRequestor(options: SerialRequestorOptions = {}): Eve
   const base = resolveBase(options.base)
   let chain: Promise<unknown> = Promise.resolve()
 
-  return wrapRequestor(base, async (_config, next) => {
-    const run = chain.then(() => next())
+  return wrapRequestor(base, async (config, next) => {
+    const run = chain.then(() => { config.signal?.throwIfAborted(); return next() })
     chain = run.then(
       () => undefined,
       () => undefined,

@@ -33,6 +33,7 @@ export function configureBus(config: BusConfig): void {
     busConfig.getRequestToken = token
   }
   else if (typeof token === 'string') {
+    busConfig.getRequestToken = undefined
     tokenValue = token
   }
 }
@@ -49,12 +50,12 @@ export function getBusConfig(): BusConfig {
   return { ...busConfig }
 }
 
-function applyBusDefaults(config: RequestConfig): RequestConfig {
+export function applyBusDefaults(config: RequestConfig): RequestConfig {
   const headers = { ...(config.headers ?? {}) }
   const authHeader = busConfig.authHeader ?? 'Authorization'
   const t = getRequestToken()
   const skipAuth = config.meta?.auth === false
-  if (t && !skipAuth && !headers[authHeader]) {
+  if (t && !skipAuth && !Object.keys(headers).some(key => key.toLowerCase() === authHeader.toLowerCase())) {
     headers[authHeader] = t.startsWith('Bearer ') ? t : `Bearer ${t}`
   }
   return {
@@ -107,11 +108,12 @@ export async function busCall<T = unknown>(
   options?: BusCallOptions,
 ): Promise<T> {
   const { raw, ...reqOptions } = options ?? {}
-  const config = buildConfig(method, url, body, reqOptions)
+  const config = applyBusDefaults(buildConfig(method, url, body, reqOptions))
   const response = await requestor.request(config)
   if (!response.ok) {
     throw new BusError(`HTTP ${response.status}`, response.status, response.toPlain())
   }
+  if (method === 'HEAD' || response.status === 204 || response.status === 205) return undefined as T
   const json = await response.json<ApiEnvelope<T> | T>()
   if (raw) return json as T
   return unwrapEnvelope<T>(json, busConfig.successCode ?? 0)

@@ -60,6 +60,6 @@ describe('generateFromApiJson', () => {
       },
     })
     expect(code).toContain('id: string')
-    expect(code).toContain('flyreq.get(`/api/article/${id}`')
+    expect(code).toContain('flyreq.get(`/api/article/${encodeURIComponent(id)}`')
   })
 })
